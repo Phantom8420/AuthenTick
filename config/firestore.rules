@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (getUserData().role == "ADMIN" || 
+         (request.auth.token.email == "sir.ishaan.jain@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Domain Validators
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(["uid", "email", "role", "organizationName", "gln"]) &&
+        data.uid == request.auth.uid &&
+        isValidEmail(data.email) &&
+        data.role in ["MANUFACTURER", "DISTRIBUTOR", "RETAILER", "CUSTOMER"];
+    }
+
+    function isValidProduct(data) {
+      return hasOnlyAllowedFields(["id", "gtin", "serial", "name", "manufacturer", "batchId", "createdAt", "currentOwner", "status", "imageUrl"]) &&
+        data.id is string && data.id.size() > 0 &&
+        data.gtin is string && data.gtin.size() == 14 &&
+        data.serial is string && data.serial.size() > 0 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.status in ["PRODUCTION", "IN_TRANSIT", "RETAIL", "SOLD"] &&
+        (!("imageUrl" in data) || isValidUrl(data.imageUrl));
+    }
+
+    function isValidEvent(data) {
+      return hasOnlyAllowedFields(["id", "productId", "type", "action", "bizStep", "disposition", "readPoint", "eventTime", "recordedTime", "actor"]) &&
+        data.id is string && data.productId is string &&
+        data.type in ["OBJECT_EVENT", "AGGREGATION_EVENT", "TRANSACTION_EVENT"] &&
+        data.action in ["ADD", "OBSERVE", "DELETE"] &&
+        data.eventTime is timestamp &&
+        data.recordedTime is timestamp;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+        (request.resource.data.role == "CUSTOMER" || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+        request.resource.data.role == resource.data.role;
+    }
+
+    match /products/{productId} {
+      allow read: if true; 
+      allow create: if isAuthenticated() && hasRole("MANUFACTURER") && isValidProduct(request.resource.data) &&
+        request.resource.data.status == "PRODUCTION";
+      allow update: if isAuthenticated() && isValidProduct(request.resource.data) && (
+        (hasRole("MANUFACTURER") && resource.data.manufacturer == request.auth.uid) ||
+        (hasRole("DISTRIBUTOR") || hasRole("RETAILER")) ||
+        (resource.data.currentOwner == request.auth.uid) ||
+        isAdmin()
+      ) && 
+      request.resource.data.id == resource.data.id &&
+      request.resource.data.gtin == resource.data.gtin &&
+      request.resource.data.serial == resource.data.serial &&
+      request.resource.data.manufacturer == resource.data.manufacturer &&
+      request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /products/{productId}/events/{eventId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && (
+        hasRole("MANUFACTURER") || hasRole("DISTRIBUTOR") || hasRole("RETAILER") || isAdmin()
+      ) && isValidEvent(request.resource.data) && 
+      request.resource.data.productId == productId;
+    }
+  }
+}

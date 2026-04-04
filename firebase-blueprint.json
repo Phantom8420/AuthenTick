@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user role and organization information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique user ID from Firebase Auth." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "role": { "type": "string", "enum": ["MANUFACTURER", "DISTRIBUTOR", "RETAILER", "CUSTOMER"], "description": "The user's role in the AuthenTick ecosystem." },
+        "organizationName": { "type": "string", "description": "The name of the organization the user belongs to." },
+        "gln": { "type": "string", "description": "Global Location Number for GS1 compliance." }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Product": {
+      "title": "Product Digital Twin",
+      "description": "The digital twin of a physical product stored as an NFT metadata record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The NFT Token ID (hex string)." },
+        "gtin": { "type": "string", "description": "Global Trade Item Number." },
+        "serial": { "type": "string", "description": "Unique Serial Number." },
+        "name": { "type": "string", "description": "Product name." },
+        "manufacturer": { "type": "string", "description": "Manufacturer name or UID." },
+        "batchId": { "type": "string", "description": "Production batch ID." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+        "currentOwner": { "type": "string", "description": "Current owner's wallet address or UID." },
+        "status": { "type": "string", "enum": ["PRODUCTION", "IN_TRANSIT", "RETAIL", "SOLD"], "description": "Current status of the product." },
+        "imageUrl": { "type": "string", "format": "uri", "description": "URL to the product image." }
+      },
+      "required": ["id", "gtin", "serial", "name", "manufacturer", "status"]
+    },
+    "EPCISEvent": {
+      "title": "EPCIS Event",
+      "description": "Provenance event following the GS1 EPCIS standard.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique event ID." },
+        "productId": { "type": "string", "description": "The ID of the product this event belongs to." },
+        "type": { "type": "string", "enum": ["OBJECT_EVENT", "AGGREGATION_EVENT", "TRANSACTION_EVENT"], "description": "EPCIS event type." },
+        "action": { "type": "string", "enum": ["ADD", "OBSERVE", "DELETE"], "description": "EPCIS action." },
+        "bizStep": { "type": "string", "description": "Business step (e.g., shipping, receiving)." },
+        "disposition": { "type": "string", "description": "Product disposition (e.g., in_transit, sellable)." },
+        "readPoint": { "type": "string", "description": "Location GLN where the event was recorded." },
+        "eventTime": { "type": "string", "format": "date-time", "description": "Time the event occurred." },
+        "recordedTime": { "type": "string", "format": "date-time", "description": "Time the event was recorded in the system." },
+        "actor": { "type": "string", "description": "The entity that recorded the event." }
+      },
+      "required": ["id", "productId", "type", "action", "bizStep", "eventTime"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and roles."
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product digital twins."
+    },
+    "/products/{productId}/events/{eventId}": {
+      "schema": "EPCISEvent",
+      "description": "Provenance events for a specific product."
+    }
+  }
+}

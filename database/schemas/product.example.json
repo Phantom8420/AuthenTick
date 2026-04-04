@@ -1,0 +1,11 @@
+{
+  "tokenId": "0xabc…",
+  "gtin": "00012345678905",
+  "serial": "SN-001",
+  "name": "Example product",
+  "manufacturerId": "org-uuid-or-wallet",
+  "batchId": "BATCH-2026-01",
+  "currentOwner": "0x…",
+  "status": "PRODUCTION",
+  "imageUrl": "https://cdn.example.com/p/sku.png"
+}

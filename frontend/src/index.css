@@ -1,0 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Revolut-style Dark Theme Colors */
+  --color-slate-950: #0a0e14;
+  --color-slate-900: #121820;
+  --color-slate-800: #1b2330;
+  
+  --color-electric-blue: #2563eb;
+  --color-teal-accent: #0d9488;
+  --color-violet-accent: #7c3aed;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-50 antialiased;
+  }
+}

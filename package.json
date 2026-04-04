@@ -1,0 +1,38 @@
+{
+  "name": "authentick",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "contracts",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:stack": "docker compose -f docker/docker-compose.yml up -d mongo && npm run dev",
+    "build": "npm run build -w contracts && npm run build -w backend && npm run build -w frontend",
+    "build:contracts": "npm run build -w contracts",
+    "build:backend": "npm run build -w backend",
+    "build:frontend": "npm run build -w frontend",
+    "test:contracts": "npm run test -w contracts",
+    "node:chain": "npm run node -w contracts",
+    "lint": "npm run lint --workspaces --if-present",
+    "docker:up": "docker compose -f docker/docker-compose.yml up --build",
+    "docker:down": "docker compose -f docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.1",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",
+    "@types/node": "^22.19.17",
+    "concurrently": "^9.1.2",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.3.0",
+    "typescript": "~5.8.0",
+    "viem": "^2.47.10"
+  },
+  "dependencies": {
+    "ethers": "^6.16.0"
+  }
+}

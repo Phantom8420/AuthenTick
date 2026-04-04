@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: authentick
+    volumes:
+      - mongo_data:/data/db
+      - ../database/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGODB_URI: mongodb://authentick:authentick_dev_password@mongo:27017/authentick?authSource=authentick
+      CORS_ORIGIN: http://localhost:8080
+      RPC_URL: ${RPC_URL:-}
+      NFT_CONTRACT_ADDRESS: ${NFT_CONTRACT_ADDRESS:-}
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        # Browser calls same origin; nginx proxies /api to backend
+        VITE_API_URL: ""
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

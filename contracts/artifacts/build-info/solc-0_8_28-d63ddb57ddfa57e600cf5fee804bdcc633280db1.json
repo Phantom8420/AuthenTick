@@ -1,0 +1,40 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-d63ddb57ddfa57e600cf5fee804bdcc633280db1",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "compilerType": "solc",
+  "userSourceNameMap": {
+    "contracts/AuthenTick.sol": "project/contracts/AuthenTick.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/AuthenTick.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.20;\r\n\r\ncontract AuthenTick {\r\n\r\n    struct Product {\r\n        uint256 productId;\r\n        string name;\r\n        string manufacturer;\r\n        address owner;\r\n        bool exists;\r\n    }\r\n\r\n    uint256 public productCount;\r\n\r\n    mapping(uint256 => Product) public products;\r\n\r\n    event ProductRegistered(\r\n        uint256 productId,\r\n        string name,\r\n        string manufacturer,\r\n        address owner\r\n    );\r\n\r\n    event OwnershipTransferred(\r\n        uint256 productId,\r\n        address oldOwner,\r\n        address newOwner\r\n    );\r\n\r\n    function registerProduct(\r\n        string memory _name,\r\n        string memory _manufacturer\r\n    ) public {\r\n\r\n        productCount++;\r\n\r\n        products[productCount] = Product(\r\n            productCount,\r\n            _name,\r\n            _manufacturer,\r\n            msg.sender,\r\n            true\r\n        );\r\n\r\n        emit ProductRegistered(\r\n            productCount,\r\n            _name,\r\n            _manufacturer,\r\n            msg.sender\r\n        );\r\n    }\r\n\r\n    function transferOwnership(\r\n        uint256 _productId,\r\n        address _newOwner\r\n    ) public {\r\n\r\n        require(products[_productId].exists, \"Product not found\");\r\n        require(\r\n            products[_productId].owner == msg.sender,\r\n            \"Not owner\"\r\n        );\r\n\r\n        address oldOwner = products[_productId].owner;\r\n        products[_productId].owner = _newOwner;\r\n\r\n        emit OwnershipTransferred(\r\n            _productId,\r\n            oldOwner,\r\n            _newOwner\r\n        );\r\n    }\r\n\r\n    function verifyProduct(uint256 _productId)\r\n        public\r\n        view\r\n        returns (Product memory)\r\n    {\r\n        require(products[_productId].exists, \"Product not found\");\r\n        return products[_productId];\r\n    }\r\n}"
+      }
+    }
+  }
+}

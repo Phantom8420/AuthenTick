@@ -1,0 +1,11 @@
+{
+  "productId": "0xabc…",
+  "type": "OBJECT_EVENT",
+  "action": "OBSERVE",
+  "bizStep": "shipping",
+  "disposition": "in_transit",
+  "readPoint": "GLN-1234567890123",
+  "eventTime": "2026-04-04T12:00:00.000Z",
+  "recordedTime": "2026-04-04T12:00:01.000Z",
+  "actor": "distributor-wallet-or-user-id"
+}
