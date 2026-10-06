@@ -1,4 +1,4 @@
-import { AbiCoder, id, isAddress, keccak256 } from "ethers";
+import { AbiCoder, type Contract, id, isAddress, keccak256 } from "ethers";
 import type { BizStep } from "../domain/lifecycle.js";
 import type { Chain } from "../config/blockchain.js";
 import { HttpError } from "../errors.js";
@@ -21,9 +21,13 @@ export const deriveTokenId = (gtin: string, serial: string) =>
 /** The contract stores the batch as a number; free-form batch codes are hashed into one. */
 export const batchToUint = (batchId: string) => (/^\d{1,30}$/.test(batchId) ? BigInt(batchId) : BigInt(id(batchId)));
 
+type EthersError = { reason?: string; shortMessage?: string; message?: string; error?: { message?: string }; info?: { error?: { message?: string } } };
+
 const chainError = (e: unknown) => {
-  const msg = (e as { shortMessage?: string; reason?: string; message?: string }) ?? {};
-  return new HttpError(502, `On-chain anchoring failed: ${msg.reason ?? msg.shortMessage ?? msg.message ?? "unknown error"}`);
+  const err = (e ?? {}) as EthersError;
+  // ethers wraps node errors it cannot decode; the useful text is one level down
+  const why = err.reason ?? err.info?.error?.message ?? err.error?.message ?? err.shortMessage ?? err.message ?? "unknown error";
+  return new HttpError(502, `On-chain anchoring failed: ${why}`);
 };
 
 /**
@@ -41,8 +45,8 @@ export class Anchor {
   async mint(owner: string, gtin: string, serial: string, batchId: string) {
     const to = isAddress(owner) ? owner : this.write.relayer;
     try {
-      const tx = await this.write.nft.mintProduct(to, gtin, serial, batchToUint(batchId));
-      await tx.wait();
+      const args = [to, gtin, serial, batchToUint(batchId)];
+      await (await this.write.nft.mintProduct(...args, await this.gas(this.write.nft, "mintProduct", args))).wait();
       await this.advanceTo(BigInt(deriveTokenId(gtin, serial)), TARGET_STAGE.commissioning);
     } catch (e) {
       throw chainError(e);
@@ -61,11 +65,17 @@ export class Anchor {
     return Number(await this.write.registry.stageOf(BigInt(tokenId)));
   }
 
+  /** Estimates are tight when a call fans out to other contracts, so leave headroom. */
+  private async gas(contract: Contract, fn: string, args: unknown[]) {
+    const estimate = await contract.getFunction(fn).estimateGas(...args);
+    return { gasLimit: (estimate * 13n) / 10n };
+  }
+
   /** Moves the token forward until it reaches `target`. Never moves it backwards. */
   private async advanceTo(tokenId: bigint, target: number) {
     let stage = Number(await this.write.registry.stageOf(tokenId));
     while (stage < target) {
-      await (await this.write.registry.advance(tokenId)).wait();
+      await (await this.write.registry.advance(tokenId, await this.gas(this.write.registry, "advance", [tokenId]))).wait();
       stage++;
     }
   }

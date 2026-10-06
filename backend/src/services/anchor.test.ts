@@ -12,15 +12,18 @@ function fakeChain(opts: { failAdvance?: boolean } = {}) {
   const stages = new Map<string, number>();
   const calls: string[] = [];
   const tx = { wait: async () => ({}) };
+  const getFunction = () => ({ estimateGas: async () => 100n });
   const write = {
     relayer: Wallet.createRandom().address,
     nft: {
+      getFunction,
       mintProduct: async (to: string, gtin: string, serial: string) => {
         calls.push(`mint:${to}:${gtin}:${serial}`);
         return tx;
       },
     },
     registry: {
+      getFunction,
       stageOf: async (id: bigint | string) => stages.get(String(id)) ?? 0,
       advance: async (id: bigint | string) => {
         if (opts.failAdvance) throw Object.assign(new Error("x"), { reason: "ProductRevoked" });

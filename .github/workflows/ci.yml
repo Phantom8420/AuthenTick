@@ -49,3 +49,15 @@ jobs:
       - run: npm ci
       - run: npm run lint -w contracts
       - run: npm test -w contracts
+
+  chain-smoke:
+    runs-on: ubuntu-latest
+    needs: [contracts, backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke:chain -w backend

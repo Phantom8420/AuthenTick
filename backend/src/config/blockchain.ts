@@ -7,11 +7,18 @@ export const nftAbi = [
   "function isAuthentic(uint256 tokenId) view returns (bool)",
   "function tokenIdFor(string gtin, string serial) pure returns (uint256)",
   "function mintProduct(address to, string gtin, string serial, uint256 batchId) returns (uint256)",
+  "error NotManufacturer()",
+  "error AlreadyMinted(uint256 tokenId)",
+  "error InvalidInput()",
 ] as const;
 
 export const registryAbi = [
   "function stageOf(uint256 tokenId) view returns (uint8)",
   "function advance(uint256 tokenId) returns (uint8)",
+  "error UnknownProduct(uint256 tokenId)",
+  "error ProductRevoked(uint256 tokenId)",
+  "error InvalidTransition(uint8 from, uint8 to)",
+  "error MissingRole(bytes32 role)",
 ] as const;
 
 export interface Chain {
