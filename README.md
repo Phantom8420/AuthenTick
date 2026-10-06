@@ -66,11 +66,15 @@ npm test                 # all workspaces
 npm run test:contracts   # Hardhat
 npm run test:backend     # Vitest
 npm run test:frontend    # Vitest
+npm run e2e -w frontend  # Playwright: demo journey + accessibility (needs `npx playwright install chromium` once)
+npm run smoke:chain -w backend   # real local chain: deploy, mint, full lifecycle, revoke
 ```
 
 ## Deploying the frontend
 
 `frontend/vercel.json` rewrites all routes to the SPA. Build with `npm run build -w frontend` and deploy `frontend/dist` to any static host. Set `VITE_API_URL` to point at a hosted API; without it the app runs in demo mode.
+
+The repo can deploy `main` to Vercel on every push (`.github/workflows/deploy.yml`). Add `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` as repository secrets to turn it on; until then the job skips itself.
 
 ## Contributing
 

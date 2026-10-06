@@ -27,9 +27,8 @@ services:
       # wallet sign-in is on in production, so these must be provided
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET to 32+ random characters}
       ADMIN_ADDRESSES: ${ADMIN_ADDRESSES:-}
-      # wallet sign-in is on in production, so these must be provided
-      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET to 32+ random characters}
-      ADMIN_ADDRESSES: ${ADMIN_ADDRESSES:-}
+      REGISTRY_CONTRACT_ADDRESS: ${REGISTRY_CONTRACT_ADDRESS:-}
+      RELAYER_PRIVATE_KEY: ${RELAYER_PRIVATE_KEY:-}
     depends_on:
       - mongo
 
