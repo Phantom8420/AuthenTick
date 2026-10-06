@@ -2,12 +2,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import type { Signer } from "ethers";
-import { getContract } from "@/lib/blockchain";
+import { useToast } from "@/context/ToastContext";
 
 type WalletContextValue = {
   account: string | null;
@@ -19,40 +19,37 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<string | null>(null);
+  const toast = useToast();
 
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
-      alert("Please install MetaMask!");
+      toast("No wallet found. Install MetaMask or another EIP-1193 wallet.", "err");
       return;
     }
-
-    // Create provider from window.ethereum directly 
-    const { BrowserProvider } = await import("ethers");
-    const provider = new BrowserProvider(window.ethereum);
-
-    // Request accounts from the wallet
-    await provider.send("eth_requestAccounts", []);
-
-    // Get the signer address
-    const signer = await provider.getSigner();
-    const addr = await signer.getAddress();
-    setAccount(addr);
-  }, []);
+    try {
+      const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
+      setAccount(accounts[0] ?? null);
+    } catch {
+      toast("Wallet connection was cancelled.", "info");
+    }
+  }, [toast]);
 
   const disconnect = useCallback(() => setAccount(null), []);
 
-  const value = useMemo(
-    () => ({ account, connectWallet, disconnect }),
-    [account, connectWallet, disconnect],
-  );
+  useEffect(() => {
+    const eth = window.ethereum;
+    if (!eth?.on) return;
+    const onChange = (accounts: string[]) => setAccount(accounts[0] ?? null);
+    eth.on("accountsChanged", onChange);
+    return () => eth.removeListener?.("accountsChanged", onChange);
+  }, []);
 
+  const value = useMemo(() => ({ account, connectWallet, disconnect }), [account, connectWallet, disconnect]);
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }
 
 export function useWallet(): WalletContextValue {
   const ctx = useContext(WalletContext);
-  if (!ctx) {
-    throw new Error("useWallet must be used within WalletProvider");
-  }
+  if (!ctx) throw new Error("useWallet must be used within WalletProvider");
   return ctx;
 }

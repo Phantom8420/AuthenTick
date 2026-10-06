@@ -1,99 +1,184 @@
-import { useState } from "react";
-import { Package, Shield } from "lucide-react";
-import { apiPost } from "@/api/client";
+import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Copy, Dices, Factory, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { apiPost } from "@/api/client";
+import { Field } from "@/components/Field";
+import { useToast } from "@/context/ToastContext";
+import { randomToken } from "@/lib/format";
+import { remember } from "@/lib/registry";
+
+const empty = {
+  tokenId: "",
+  name: "",
+  gtin: "",
+  serial: "",
+  batchId: "",
+  manufacturerId: "manufacturer-demo",
+};
 
 export default function ManufacturerPage() {
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [tokenId, setTokenId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    tokenId: "",
-    name: "",
-    gtin: "",
-    serial: "",
-    batchId: "",
-    manufacturerId: "manufacturer-demo",
-  });
+  const [minted, setMinted] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [form, setForm] = useState(empty);
+  const set = (k: keyof typeof empty) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  async function onSubmit(e: React.FormEvent) {
+  const link = minted ? `${window.location.origin}/product/${encodeURIComponent(minted)}` : "";
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setTokenId(null);
     try {
-      await apiPost("/api/products", {
-        tokenId: form.tokenId,
-        name: form.name,
-        gtin: form.gtin,
-        serial: form.serial,
-        batchId: form.batchId,
-        manufacturerId: form.manufacturerId,
-      });
-      setTokenId(form.tokenId);
+      await apiPost("/api/products", form);
+      remember(form.tokenId);
+      setMinted(form.tokenId);
+      toast("Digital twin minted and commissioned.", "ok");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Mint failed");
+      toast(err instanceof Error ? err.message : "Mint failed", "err");
     } finally {
       setBusy(false);
     }
   }
 
+  async function copy() {
+    await navigator.clipboard.writeText(link).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }
+
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-      <div style={{ marginBottom: "2.5rem" }}>
-        <h1 className="title" style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>Manufacturer Portal</h1>
-        <p className="subtitle" style={{ margin: 0 }}>Register a product and create its initial EPCIS commissioning event.</p>
+    <>
+      <div className="page-head">
+        <span className="kicker">Manufacturer portal</span>
+        <h1 className="d d-xl">
+          Mint a <span className="outline">digital twin.</span>
+        </h1>
+        <p className="muted">
+          Register a serialized product and create its first EPCIS commissioning event. You'll get a QR
+          code to print on the item.
+        </p>
       </div>
 
-      <div className="card" style={{ marginBottom: "2.5rem" }}>
-        <form onSubmit={onSubmit}>
-          <div className="grid-2" style={{ gap: "1.5rem", marginBottom: "1.5rem" }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Token ID</label>
-              <input required placeholder="0x… or numeric id" className="form-input text-mono text-sm" value={form.tokenId} onChange={(e) => setForm({ ...form, tokenId: e.target.value })} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Product Name</label>
-              <input required placeholder="e.g. Luxury Handbag" className="form-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
+      <div className="work">
+        <form className="card" onSubmit={onSubmit}>
+          <div className="card-label">
+            <Factory size={18} /> Product details
           </div>
 
-          <div className="grid-2" style={{ gap: "1.5rem", marginBottom: "1.5rem" }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">GTIN (14)</label>
-              <input required minLength={14} maxLength={14} placeholder="14-digit GTIN" className="form-input text-mono text-sm" value={form.gtin} onChange={(e) => setForm({ ...form, gtin: e.target.value })} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Serial Number</label>
-              <input required placeholder="e.g. SN-90210" className="form-input" value={form.serial} onChange={(e) => setForm({ ...form, serial: e.target.value })} />
-            </div>
+          <div className="form-grid">
+            <Field
+              full
+              mono
+              required
+              label="Token ID"
+              placeholder="0x… or numeric id"
+              value={form.tokenId}
+              onChange={set("tokenId")}
+              action={
+                <button
+                  type="button"
+                  className="round sm"
+                  style={{ width: 52, height: 52 }}
+                  title="Generate a random token ID"
+                  onClick={() => setForm((f) => ({ ...f, tokenId: randomToken() }))}
+                >
+                  <Dices size={18} />
+                </button>
+              }
+            />
+            <Field full required label="Product name" placeholder="e.g. Luxury handbag" value={form.name} onChange={set("name")} />
+            <Field
+              mono
+              required
+              label="GTIN"
+              hint="14 digits"
+              placeholder="04012345678901"
+              inputMode="numeric"
+              minLength={14}
+              maxLength={14}
+              pattern="\d{14}"
+              value={form.gtin}
+              onChange={set("gtin")}
+            />
+            <Field required label="Serial number" placeholder="SN-90210" value={form.serial} onChange={set("serial")} />
+            <Field required label="Batch ID" placeholder="BATCH-A1" value={form.batchId} onChange={set("batchId")} />
+            <Field mono required label="Manufacturer ID" value={form.manufacturerId} onChange={set("manufacturerId")} />
           </div>
 
-          <div className="grid-2" style={{ gap: "1.5rem", marginBottom: "2rem" }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Batch ID</label>
-              <input required placeholder="e.g. BATCH-A1" className="form-input" value={form.batchId} onChange={(e) => setForm({ ...form, batchId: e.target.value })} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Manufacturer ID</label>
-              <input required className="form-input text-mono text-sm" value={form.manufacturerId} onChange={(e) => setForm({ ...form, manufacturerId: e.target.value })} />
-            </div>
-          </div>
-
-          <button type="submit" disabled={busy} className="btn btn-primary" style={{ width: "100%", padding: "1rem" }}>
-             {busy ? "Saving…" : <><Shield size={20} /> Register Product & Commission</>}
+          <button className="btn btn-block" style={{ marginTop: 30 }} disabled={busy}>
+            {busy ? (
+              <>
+                <span className="spinner" /> Minting…
+              </>
+            ) : (
+              <>
+                <Sparkles size={18} /> Register &amp; commission
+              </>
+            )}
           </button>
         </form>
-      </div>
 
-      {tokenId && (
-        <div className="card" style={{ borderColor: "var(--accent-green)", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <Package size={40} style={{ color: "var(--accent-green)", marginBottom: "1rem" }} />
-          <h3 style={{ fontSize: "1.125rem", fontWeight: 600, marginBottom: "1.5rem" }}>Product Registered Successfully</h3>
-          <div style={{ backgroundColor: "white", padding: "1rem", borderRadius: "1rem", marginBottom: "1.5rem", display: "inline-block" }}>
-             <QRCodeSVG value={tokenId} size={160} />
-          </div>
-          <code className="text-mono text-xs text-muted" style={{ padding: "0.5rem 1rem", backgroundColor: "var(--bg-primary)", borderRadius: "0.5rem" }}>{tokenId}</code>
+        <div className="stack">
+          <AnimatePresence mode="wait">
+            {minted ? (
+              <motion.div
+                key="done"
+                className="card"
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="minted">
+                  <span className="tag">Commissioned</span>
+                  <motion.div
+                    className="qr-frame"
+                    initial={{ rotate: -6, scale: 0.8 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.15 }}
+                  >
+                    <QRCodeSVG value={link} size={180} bgColor="#e8f2f1" fgColor="#031010" level="M" />
+                  </motion.div>
+                  <div className="token-pill mono">
+                    <span>{minted}</span>
+                    <button onClick={copy} title="Copy product link" aria-label="Copy product link">
+                      {copied ? <Check size={15} color="var(--teal)" /> : <Copy size={15} />}
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                    <Link to={`/product/${encodeURIComponent(minted)}`} className="btn btn-sm">
+                      View record <ArrowUpRight size={15} />
+                    </Link>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => {
+                        setMinted(null);
+                        setForm(empty);
+                      }}
+                    >
+                      Mint another
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="idle" className="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <div className="empty">
+                  <div className="qr-frame" style={{ opacity: 0.1, padding: 14 }}>
+                    <QRCodeSVG value="authentick" size={120} bgColor="#e8f2f1" fgColor="#031010" />
+                  </div>
+                  Your product's QR code will appear here once it's minted.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
