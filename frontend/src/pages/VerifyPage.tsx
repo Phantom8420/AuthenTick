@@ -1,86 +1,127 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Html5QrcodeScanner } from "html5-qrcode";
-import { QrCode, ShieldCheck } from "lucide-react";
-import { AnimatedSection } from "@/components/ui/AnimatedSection";
-import { Card } from "@/components/ui/Card";
+import { Html5Qrcode } from "html5-qrcode";
 import { motion } from "framer-motion";
+import { CameraOff, Search } from "lucide-react";
+import { tokenFromScan } from "@/lib/format";
+
+const READER_ID = "qr-reader";
 
 export default function VerifyPage() {
   const navigate = useNavigate();
-  const [error, setError] = useState<string>("");
+  const [camError, setCamError] = useState<string | null>(null);
+  const [live, setLive] = useState(false);
+  const [manual, setManual] = useState("");
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 280, height: 280 } },
-      false
-    );
+    let cancelled = false;
+    let started = false;
+    const scanner = new Html5Qrcode(READER_ID, false);
 
-    scanner.render(
-      (decodedText) => {
-        scanner.clear();
-        navigate(`/product/${encodeURIComponent(decodedText)}`);
-      },
-      (err) => {
-        // Ignored for continuous scanning
-      }
-    );
+    const halt = () =>
+      scanner
+        .stop()
+        .then(() => scanner.clear())
+        .catch(() => {});
+
+    scanner
+      .start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1 },
+        (text) => {
+          if (cancelled) return;
+          cancelled = true;
+          navigate(`/product/${encodeURIComponent(tokenFromScan(text))}`);
+        },
+        () => {},
+      )
+      .then(() => {
+        started = true;
+        if (cancelled) void halt();
+        else setLive(true);
+      })
+      .catch((e) => {
+        if (!cancelled) setCamError(typeof e === "string" ? e : (e as Error)?.message || "Camera unavailable");
+      });
 
     return () => {
-      scanner.clear().catch(console.error);
+      cancelled = true;
+      if (started) void halt();
     };
   }, [navigate]);
 
+  function lookup(e: FormEvent) {
+    e.preventDefault();
+    const id = tokenFromScan(manual);
+    if (id) navigate(`/product/${encodeURIComponent(id)}`);
+  }
+
   return (
-    <AnimatedSection className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[70vh]">
-      <div className="text-center mb-10">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }} 
-          animate={{ scale: 1, opacity: 1 }} 
-          className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-electric-blue/10 border border-electric-blue/30 mb-6 relative overflow-hidden"
-        >
-          {/* Scanning line animation */}
-          <motion.div 
-            animate={{ top: ["0%", "100%", "0%"] }} 
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            className="absolute top-0 left-0 w-full h-[2px] bg-electric-blue shadow-[0_0_8px_2px_rgba(37,99,235,0.8)]"
-          />
-          <QrCode className="h-10 w-10 text-electric-blue" />
-        </motion.div>
-        
-        <h1 className="text-4xl font-bold tracking-tight text-white mb-4">
-          Verify Authenticity
+    <div className="verify-grid" style={{ marginTop: 30 }}>
+      <div className="page-head" style={{ margin: 0, gap: 26 }}>
+        <span className="kicker">Consumer verification</span>
+        <h1 className="d d-xl">
+          Is it
+          <br />
+          <span className="outline">real?</span>
         </h1>
-        <p className="text-slate-400 max-w-lg mx-auto text-lg leading-relaxed">
-          Position the product's QR code within the frame below to cryptographically verify its origin and scan its supply chain history.
+        <p className="muted">
+          Hold the product's QR code inside the frame. We'll pull its on-chain identity and complete
+          supply-chain history in an instant.
         </p>
+
+        <div className="divider">or enter an ID</div>
+
+        <form onSubmit={lookup} className="input-row">
+          <input
+            className="input mono"
+            placeholder="Token ID or product link"
+            value={manual}
+            onChange={(e) => setManual(e.target.value)}
+            aria-label="Token ID"
+            style={{ borderRadius: 999, height: 54 }}
+          />
+          <button className="round" disabled={!manual.trim()} aria-label="Look up">
+            <Search size={20} />
+          </button>
+        </form>
       </div>
 
-      <Card hoverEffect={false} className="w-full max-w-lg p-2 bg-slate-950 border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-        {/* html5-qrcode injects styles, so we wrap it to constrain it */}
-        <div className="rounded-[20px] overflow-hidden bg-black border-2 border-slate-800 relative">
-          <div id="qr-reader" className="w-full h-full [&_video]:rounded-[20px] [&_video]:object-cover" />
-          
-          {/* Overlay corners for scanner aesthetic */}
-          <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-electric-blue rounded-tl-xl pointer-events-none" />
-          <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-electric-blue rounded-tr-xl pointer-events-none" />
-          <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-electric-blue rounded-bl-xl pointer-events-none" />
-          <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-electric-blue rounded-br-xl pointer-events-none" />
+      <motion.div
+        className="scanner"
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div id={READER_ID} />
+
+        {!live && (
+          <div className="scan-msg">
+            {camError ? (
+              <>
+                <CameraOff size={34} color="#d9736e" />
+                <span>Camera isn't available here.</span>
+                <span style={{ color: "var(--faint)" }}>
+                  Allow camera access, or look the product up with its ID instead.
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="spinner" />
+                <span>Starting camera…</span>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="scan-ui">
+          <i className="corner tl" />
+          <i className="corner tr" />
+          <i className="corner bl" />
+          <i className="corner br" />
+          {live && <div className="scan-line" />}
         </div>
-      </Card>
-
-      {error && (
-        <AnimatedSection delay={0.3} className="mt-6 text-center">
-          <p className="inline-flex items-center px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-medium text-sm">
-            {error}
-          </p>
-        </AnimatedSection>
-      )}
-
-      <AnimatedSection delay={0.4} className="mt-12 text-center flex items-center justify-center gap-2 text-slate-500 text-sm">
-        <ShieldCheck className="w-5 h-5" /> Secured by AuthenTick Network
-      </AnimatedSection>
-    </AnimatedSection>
+      </motion.div>
+    </div>
   );
 }
