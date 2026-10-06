@@ -278,7 +278,7 @@ export default function ProductDetailsPage() {
           <motion.div className="card" {...rise(0.28)}>
             <div style={{ display: "flex", gap: 22, alignItems: "center", flexWrap: "wrap" }}>
               <div className="qr-frame" style={{ padding: 10, borderRadius: 16, boxShadow: "none" }}>
-                <QRCodeSVG value={link} size={86} bgColor="#e8f2f1" fgColor="#031010" />
+                <QRCodeSVG title="QR code for this product page" value={link} size={86} bgColor="#e8f2f1" fgColor="#031010" />
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <b className="d d-sm" style={{ display: "block" }}>

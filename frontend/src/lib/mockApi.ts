@@ -33,6 +33,16 @@ const announce = (auto: boolean, reason?: string) =>
   window.dispatchEvent(new CustomEvent("authentick:demo", { detail: { auto, reason } }));
 
 /** True for the built-in demo token, however the user typed it. */
+/** Stand-in for the contract's keccak256(gtin, serial): stable, so the same item always gets the same id. */
+export function deriveTokenId(gtin: string, serial: string): string {
+  let h1 = 0xcbf29ce4, h2 = 0x84222325;
+  for (const ch of `${gtin}|${serial}`) {
+    h1 = Math.imul(h1 ^ ch.charCodeAt(0), 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ ch.charCodeAt(0), 0x85ebca6b) >>> 0;
+  }
+  return "0x" + h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+}
+
 export const isDemoToken = (id: string) => id.trim().toLowerCase() === DEMO_TOKEN;
 
 export function enableDemo(auto = false, reason?: string) {
@@ -128,8 +138,10 @@ export async function mockRequest<T>(method: "GET" | "POST", path: string, rawBo
 
   // POST /api/products
   if (method === "POST" && p[0] === "products" && p.length === 1) {
-    const b = body ?? {};
-    if (!b.tokenId || !b.name || !b.serial) throw new Error("Missing required fields");
+    const b = { ...(body ?? {}) };
+    if (!b.name || !b.serial) throw new Error("Missing required fields");
+    if (!b.tokenId && b.gtin) b.tokenId = deriveTokenId(String(b.gtin), String(b.serial));
+    if (!b.tokenId) throw new Error("Missing required fields");
     if (!isValidGtin14(String(b.gtin ?? ""))) throw new Error("gtin: GTIN must be 14 digits with a valid GS1 check digit");
     if (s.products[b.tokenId]) throw new Error("A product with this token ID already exists");
     if (Object.values(s.products).some((x) => x.gtin === b.gtin && x.serial === b.serial)) {

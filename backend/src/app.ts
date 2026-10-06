@@ -1,9 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import type { Contract } from "ethers";
 import type { Env } from "./config/env.js";
 import type { Repository } from "./repo/types.js";
 import type { Deps } from "./http.js";
@@ -16,18 +14,30 @@ import { productsRouter } from "./routes/products.js";
 import { eventsRouter } from "./routes/events.js";
 import { metadataRouter } from "./routes/metadata.js";
 import { verifyRouter } from "./routes/verify.js";
+import { requestLog } from "./middleware/requestLog.js";
+import { Anchor } from "./services/anchor.js";
+import { NonceStore } from "./services/nonces.js";
+import type { Chain } from "./config/blockchain.js";
 
-export function createApp(env: Env, repo: Repository, nft: Contract | null = null) {
+export function createApp(env: Env, repo: Repository, chain: Chain | null = null) {
   const app = express();
-  const deps: Deps = { env, repo, nft };
+  const deps: Deps = {
+    env,
+    repo,
+    nft: chain?.nft ?? null,
+    registry: chain?.registry ?? null,
+    anchor: chain?.write ? new Anchor(chain.write) : null,
+    nonces: new NonceStore(),
+  };
 
   // behind nginx / a platform proxy, so client IPs are real for rate limiting
   if (env.NODE_ENV === "production") app.set("trust proxy", 1);
 
+  app.disable("x-powered-by");
+  app.use(requestLog(env.NODE_ENV !== "test"));
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN.split(",").map((s) => s.trim()), credentials: true }));
   app.use(express.json({ limit: "100kb" }));
-  if (env.NODE_ENV !== "test") app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
   const limit = (max: number) =>
     env.NODE_ENV === "test"

@@ -34,9 +34,11 @@ export default function ManufacturerPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      await apiPost("/api/products", form);
-      remember(form.tokenId);
-      setMinted(form.tokenId);
+      const { tokenId, ...rest } = form;
+      // a blank token id is derived from GTIN + serial, the same way the contract does it
+      const product = await apiPost<{ tokenId: string }>("/api/products", tokenId.trim() ? form : rest);
+      remember(product.tokenId);
+      setMinted(product.tokenId);
       toast("Digital twin minted and commissioned.", "ok");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Mint failed", "err");
@@ -91,9 +93,9 @@ export default function ManufacturerPage() {
             <Field
               full
               mono
-              required
               label="Token ID"
-              placeholder="0x… or numeric id"
+              hint="optional"
+              placeholder="Leave blank to derive from GTIN + serial"
               value={form.tokenId}
               onChange={set("tokenId")}
               action={
@@ -159,7 +161,7 @@ export default function ManufacturerPage() {
                     animate={{ rotate: 0, scale: 1 }}
                     transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.15 }}
                   >
-                    <QRCodeSVG value={link} size={180} bgColor="#e8f2f1" fgColor="#031010" level="M" />
+                    <QRCodeSVG title="QR code linking to this product" value={link} size={180} bgColor="#e8f2f1" fgColor="#031010" level="M" />
                   </motion.div>
                   <div className="token-pill mono">
                     <span>{minted}</span>
@@ -187,7 +189,7 @@ export default function ManufacturerPage() {
               <motion.div key="idle" className="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="empty">
                   <div className="qr-frame" style={{ opacity: 0.1, padding: 14 }}>
-                    <QRCodeSVG value="authentick" size={120} bgColor="#e8f2f1" fgColor="#031010" />
+                    <QRCodeSVG title="Sample QR code" value="authentick" size={120} bgColor="#e8f2f1" fgColor="#031010" />
                   </div>
                   Your product's QR code will appear here once it's minted.
                 </div>

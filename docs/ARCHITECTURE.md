@@ -22,7 +22,8 @@ AuthenTick is a hybrid system. Ownership and authenticity are anchored on a publ
 - **Repository layer.** `Repository` has a MongoDB implementation and an in-memory one (used when `MONGODB_URI` is unset). Both pass the same contract tests.
 - **Lifecycle rules.** `domain/lifecycle.ts` defines which GS1 EPCIS business step may follow which. Advancing a product is a compare-and-set on its last step, so concurrent writers cannot both win.
 - **GTIN validation.** `domain/gtin.ts` checks the GS1 check digit.
-- **Wallet auth.** The server issues a stateless, HMAC-signed challenge. The wallet signs it, the server recovers the address, looks up the role, and returns a 12 hour JWT. Writes are role-checked when `AUTH_REQUIRED` is on.
+- **Wallet auth.** The server issues a stateless, HMAC-signed challenge. The wallet signs it, the server recovers the address, looks up the role, and sets a 12 hour JWT in an `httpOnly` cookie (writes also need an anti-CSRF header). Each challenge is accepted once. Writes are role-checked when `AUTH_REQUIRED` is on.
+- **On-chain anchoring.** With a relayer key configured, minting and each lifecycle event are mirrored to `AuthenTickNFT` and `OwnershipRegistry` before they are recorded off-chain, so the contracts have the final say on duplicates, ordering and revocation. See [backend/README.md](../backend/README.md#on-chain-anchoring).
 - **Ownership proofs.** A per-product challenge is signed by the claimed owner. The server checks the signature and compares the address with the registered owner, or with `ownerOf` on-chain when `RPC_URL` and `NFT_CONTRACT_ADDRESS` are set.
 
 ## Frontend (`frontend/`)
@@ -42,4 +43,4 @@ Events follow the EPCIS who/what/when/where/why model: product (GTIN + serial), 
 
 ## Not built yet
 
-Zero-knowledge ownership proofs, batch anchoring of events to a rollup, and a hosted API. The signature-based proof above is the current mechanism.
+Zero-knowledge ownership proofs, batch anchoring of events to a rollup, and a hosted API with a deployed testnet contract set. The signature-based proof above is the current mechanism.

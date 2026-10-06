@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { HttpError } from "../errors.js";
 import { ConflictError } from "../repo/types.js";
 
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ZodError) {
     const first = err.issues[0];
     const where = first.path.length ? `${first.path.join(".")}: ` : "";
@@ -16,6 +16,6 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   if (status && status >= 400 && status < 500) {
     return res.status(status).json({ error: (err as Error).message });
   }
-  console.error(err);
+  console.error(JSON.stringify({ level: "error", msg: "unhandled", id: req.id, error: (err as Error)?.stack ?? String(err) }));
   return res.status(500).json({ error: "Internal error" });
 }

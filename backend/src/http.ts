@@ -3,11 +3,18 @@ import type { Contract } from "ethers";
 import { z } from "zod";
 import type { Env } from "./config/env.js";
 import type { Repository } from "./repo/types.js";
+import type { Anchor } from "./services/anchor.js";
+import type { NonceStore } from "./services/nonces.js";
 
 export interface Deps {
   env: Env;
   repo: Repository;
   nft: Contract | null;
+  /** Mirrors writes onto the chain. Null unless a relayer is configured. */
+  anchor: Anchor | null;
+  /** Registry contract for reading stages. */
+  registry: Contract | null;
+  nonces: NonceStore;
 }
 
 /** Express 4 does not catch rejected promises from async handlers. */

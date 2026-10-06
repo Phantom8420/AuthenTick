@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiGet, apiPost, setAuthProvider, setToken } from "@/api/client";
+import { apiGet, apiPost, logout, setAuthProvider } from "@/api/client";
 import { useToast } from "@/context/ToastContext";
 
 type WalletContextValue = {
@@ -38,7 +38,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const disconnect = useCallback(() => {
-    setToken(null);
+    void logout();
     setAccount(null);
   }, []);
 
@@ -64,8 +64,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const { message } = await apiGet<{ message: string }>("/api/auth/challenge");
         const signature = await sign(message);
         if (!signature) return false;
-        const res = await apiPost<{ token: string }>("/api/auth/login", { message, signature });
-        setToken(res.token);
+        await apiPost("/api/auth/login", { message, signature });
         return true;
       } catch {
         return false;
@@ -78,7 +77,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const eth = window.ethereum;
     if (!eth?.on) return;
     const onChange = (accounts: string[]) => {
-      setToken(null); // a token belongs to the wallet that signed it
+      void logout(); // a session belongs to the wallet that signed it
       setAccount(accounts[0] ?? null);
     };
     eth.on("accountsChanged", onChange);

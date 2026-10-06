@@ -3,24 +3,6 @@ import { demoActive, enableDemo, isDemoToken, mockRequest } from "@/lib/mockApi"
 const base = () =>
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") || "";
 
-const TOKEN_KEY = "authentick.token";
-
-export const getToken = () => {
-  try {
-    return sessionStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-};
-export const setToken = (t: string | null) => {
-  try {
-    if (t) sessionStorage.setItem(TOKEN_KEY, t);
-    else sessionStorage.removeItem(TOKEN_KEY);
-  } catch {
-    /* storage unavailable: the user signs in again next time */
-  }
-};
-
 let authProvider: (() => Promise<boolean>) | null = null;
 /** The wallet layer registers how to sign in, so a 401 can recover without the page knowing. */
 export const setAuthProvider = (fn: (() => Promise<boolean>) | null) => {
@@ -38,12 +20,13 @@ async function request<T>(method: "GET" | "POST", path: string, body?: unknown, 
 
   let res: Response;
   try {
-    const token = getToken();
     res = await fetch(`${base()}${path}`, {
       method,
+      // the session is an httpOnly cookie the browser attaches; the header is the anti-CSRF proof
+      credentials: "include",
       headers: {
+        "X-Requested-With": "authentick",
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -61,7 +44,6 @@ async function request<T>(method: "GET" | "POST", path: string, body?: unknown, 
 
   // the API wants a wallet sign-in: do it once, then replay the call
   if (res.status === 401 && !retried && authProvider && !path.startsWith("/api/auth")) {
-    setToken(null);
     if (await authProvider()) return request<T>(method, path, body, true);
   }
 
@@ -71,6 +53,16 @@ async function request<T>(method: "GET" | "POST", path: string, body?: unknown, 
   }
   return res.json() as Promise<T>;
 }
+
+/** Ends the cookie session. Best effort: the cookie also expires on its own. */
+export const logout = async () => {
+  if (demoActive()) return;
+  try {
+    await fetch(`${base()}/api/auth/logout`, { method: "POST", credentials: "include", headers: { "X-Requested-With": "authentick" } });
+  } catch {
+    /* offline: nothing to end */
+  }
+};
 
 export const apiGet = <T,>(path: string) => request<T>("GET", path);
 export const apiPost = <T,>(path: string, body: unknown) => request<T>("POST", path, body);

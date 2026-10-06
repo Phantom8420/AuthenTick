@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiGet, apiPost, setAuthProvider, setToken } from "./client";
+import { apiGet, apiPost, setAuthProvider } from "./client";
 import { DEMO_TOKEN, disableDemo, isDemo, resetMock } from "@/lib/mockApi";
 
 const json = (body: unknown, status = 200) =>
@@ -35,21 +35,29 @@ describe("api client", () => {
     expect(isDemo()).toBe(true);
   });
 
-  it("signs in once on a 401, then replays the request with the token", async () => {
+  it("sends the session cookie and the anti-CSRF header, never a stored token", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(json({ ok: true }));
+    vi.stubGlobal("fetch", fetchSpy);
+    await apiGet("/api/health");
+    const init = fetchSpy.mock.calls[0][1] as RequestInit;
+    expect(init.credentials).toBe("include");
+    expect(init.headers).toMatchObject({ "X-Requested-With": "authentick" });
+    expect(init.headers).not.toHaveProperty("Authorization");
+  });
+
+  it("signs in once on a 401, then replays the request", async () => {
     const fetchSpy = vi
       .fn()
       .mockResolvedValueOnce(json({ error: "Sign in with your wallet first" }, 401))
       .mockResolvedValueOnce(json({ ok: true }, 201));
     vi.stubGlobal("fetch", fetchSpy);
-    setAuthProvider(async () => {
-      setToken("jwt-123");
-      return true;
-    });
+    const signIn = vi.fn().mockResolvedValue(true);
+    setAuthProvider(signIn);
 
     const res = await apiPost<{ ok: boolean }>("/api/products", { tokenId: "0x1" });
     expect(res.ok).toBe(true);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect((fetchSpy.mock.calls[1][1] as RequestInit).headers).toMatchObject({ Authorization: "Bearer jwt-123" });
+    expect(signIn).toHaveBeenCalledTimes(1);
   });
 
   it("surfaces the API error message", async () => {
