@@ -1,30 +1,24 @@
 import mongoose, { Schema } from "mongoose";
-
-export type UserRole = "MANUFACTURER" | "DISTRIBUTOR" | "RETAILER" | "CUSTOMER" | "ADMIN";
+import type { Role } from "../domain/lifecycle.js";
 
 export interface UserDoc {
-  walletAddress: string;
-  email?: string;
-  role: UserRole;
-  organizationName?: string;
-  gln?: string;
+  address: string;
+  role: Role;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const userSchema = new Schema<UserDoc>(
   {
-    walletAddress: { type: String, required: true, unique: true, index: true },
-    email: { type: String },
+    address: { type: String, required: true, unique: true, lowercase: true },
     role: {
       type: String,
       enum: ["MANUFACTURER", "DISTRIBUTOR", "RETAILER", "CUSTOMER", "ADMIN"],
       default: "CUSTOMER",
     },
-    organizationName: { type: String },
-    gln: { type: String },
   },
   { timestamps: true },
 );
 
-export const User = mongoose.models.User ?? mongoose.model<UserDoc>("User", userSchema);
+export const UserModel =
+  (mongoose.models.User as mongoose.Model<UserDoc>) ?? mongoose.model<UserDoc>("User", userSchema);

@@ -1,12 +1,12 @@
 # AuthenTick smart contracts
 
-Solidity stack aligned with `docs/ARCHITECTURE.md`:
+Solidity stack described in [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md):
 
 | Contract | Role |
 |----------|------|
-| `AuthenTickNFT.sol` | ERC-721 digital twin (GTIN + serial, manufacturer mint). |
-| `RoleManager.sol` | RBAC registry for supply-chain actors. |
-| `OwnershipRegistry.sol` | On-chain lifecycle stage per token (Mint → distribution → retail → consumer). |
+| `RoleManager.sol` | Shared manufacturer, distributor and retailer roles. |
+| `AuthenTickNFT.sol` | ERC-721 digital twin. Token id is `keccak256(abi.encode(gtin, serial))`; manufacturers can mint and revoke. |
+| `OwnershipRegistry.sol` | Lifecycle stage per token. One step at a time, role-gated, frozen when revoked. |
 
 ## Setup
 
@@ -14,7 +14,7 @@ Solidity stack aligned with `docs/ARCHITECTURE.md`:
 cd contracts   # or from repo root: npm install
 npm install
 npm run build
-npm test
+npm test      # runs each test file in its own Hardhat process
 ```
 
 ## Deploy (Ignition)

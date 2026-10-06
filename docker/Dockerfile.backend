@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 COPY backend/package.json backend/
 COPY contracts/package.json contracts/
 COPY frontend/package.json frontend/
-RUN npm install
+RUN npm ci -w backend
 COPY backend ./backend
 RUN npm run build -w backend
 
@@ -16,7 +16,8 @@ COPY package.json package-lock.json ./
 COPY backend/package.json backend/
 COPY contracts/package.json contracts/
 COPY frontend/package.json frontend/
-RUN npm install --omit=dev
+RUN npm ci --omit=dev -w backend
 COPY --from=base /app/backend/dist ./backend/dist
+USER node
 EXPOSE 4000
 CMD ["node", "backend/dist/index.js"]

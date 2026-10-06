@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/
 COPY backend/package.json backend/
 COPY contracts/package.json contracts/
-RUN npm install
+RUN npm ci -w frontend
 COPY frontend ./frontend
 RUN npm run build -w frontend
 

@@ -7,12 +7,12 @@ First off, thank you for considering contributing to AuthenTick! It's people lik
 1. **Fork the repository** on GitHub.
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/your-username/authentick.git
-   cd authentick
+   git clone https://github.com/Phantom8420/AuthenTick.git
+   cd AuthenTick
    ```
 3. **Set up the upstream remote**:
    ```bash
-   git remote add upstream https://github.com/your-org/authentick.git
+   git remote add upstream https://github.com/Phantom8420/AuthenTick.git
    ```
 
 ## 🛠️ Development Environment
@@ -23,17 +23,19 @@ We use a mono-repo structure with npm workspaces. To install all dependencies ac
 npm install
 ```
 
-Make sure you copy `.env.example` to `.env` and configure any necessary external credentials (such as your Firebase settings or Gemini keys).
-
-You can run the entire local testing stack (including the database) with:
+Copy `backend/.env.example` to `backend/.env` if you want to change the defaults. Without MongoDB the API uses an in-memory store, so this is enough to start:
 ```bash
-npm run dev:stack
+npm run dev
+```
+
+Before opening a pull request, run everything CI runs:
+```bash
+npm run lint && npm test && npm run build
 ```
 
 ## 🧑‍💻 Code Style & Standards
 
 - **TypeScript Standard**: We use TypeScript across the entire off-chain stack. Ensure you compile successfully before committing (`npm run lint`).
-- **Formatting**: Please adhere to the configured Prettier formatting standard.
 - **Smart Contracts**: Solidity files should adhere strictly to standard conventions; run `npm run test:contracts` to ensure all tests pass. Maintain security standard methodologies using standard OpenZeppelin extensions.
 - **Commit Messages**: We encourage conventional commit messages (e.g., `feat: Add ZK Verifier`, `fix: Patch metadata ingestion bug`).
 

@@ -1,20 +1,20 @@
-// backend/src/routes/metadata.ts
 import { Router } from "express";
-import { products, events } from "../storage.js";
+import { notFound } from "../errors.js";
+import { normalizeToken, wrap, type Deps } from "../http.js";
+import { loadRecord } from "../services/records.js";
 
-export const metadataRouter = Router();
+export const metadataRouter = (deps: Deps) => {
+  const router = Router();
 
-// Fetch product metadata and events by tokenId
-metadataRouter.get("/:tokenId", (req, res) => {
-  const { tokenId } = req.params;
-  const product = products[tokenId];
+  router.get(
+    "/:tokenId",
+    wrap(async (req, res) => {
+      const id = normalizeToken(req.params.tokenId);
+      const record = id && (await loadRecord(deps, id));
+      if (!record) throw notFound("Product not found");
+      res.json(record);
+    }),
+  );
 
-  if (!product) {
-    return res.status(404).json({ error: "Product not found" });
-  }
-
-  res.json({
-    product,
-    events: events[tokenId] || [],
-  });
-});
+  return router;
+};

@@ -1,38 +1,45 @@
-# AuthenTick Architecture
+# AuthenTick architecture
 
-## 1. System Overview
-AuthenTick is a hybrid blockchain-based anti-counterfeit system that combines the immutability of public ledgers with the scalability of centralized high-performance databases.
+AuthenTick is a hybrid system. Ownership and authenticity are anchored on a public ledger, while high-frequency supply-chain events live in a database.
 
-## 2. Component Breakdown
+```
+ Browser (React) ──► API (Express) ──► MongoDB   events, product records, roles
+        │                 │
+        │                 └──► RPC ──► AuthenTickNFT   ownerOf, isAuthentic (optional)
+        └── wallet ─────────────────► sign-in and ownership proofs (personal_sign)
+```
 
-### A. Smart Contracts (On-Chain)
-- **AuthenTickNFT (ERC-721)**: Represents the "Digital Twin" of a physical product.
-- **OwnershipRegistry**: Manages the lifecycle of a product (Mint -> Distribute -> Retail -> Own).
-- **RoleManager**: Implements RBAC (Manufacturer, Distributor, Retailer, Customer).
+## Smart contracts (`contracts/`)
 
-### B. Backend Services (Off-Chain)
-- **GS1 EPCIS Ingestion Engine**: Standardizes product event data.
-- **ZK-Prover Service**: Generates zero-knowledge proofs for ownership verification without revealing user PII.
-- **Metadata API**: Serves high-resolution product data and history.
+| Contract | Responsibility |
+|---|---|
+| `RoleManager` | Single source of truth for the manufacturer, distributor and retailer roles. |
+| `AuthenTickNFT` | ERC-721 digital twin. The token id is `keccak256(abi.encode(gtin, serial))`, so an item can be minted once. Manufacturers (or admins) can revoke a product as no longer authentic. |
+| `OwnershipRegistry` | Coarse lifecycle stage per token: Minted → InDistribution → AtRetail → ConsumerOwned. Moves one step at a time, needs the matching role, and freezes revoked products. |
 
-### C. Frontend Applications
-- **Manufacturer Portal**: Batch minting and serial generation.
-- **Supply Chain Dashboard**: Tracking transfers between distributors and retailers.
-- **Consumer App**: QR-based verification and ownership claiming.
+## API (`backend/`)
 
-## 3. Data Flow (Verification)
-1. **Product Scan**: Consumer scans the secure QR code.
-2. **Identity Fetch**: App retrieves the NFT ID and associated GS1 events.
-3. **ZK-Proof Verification**: The backend verifies the current owner's signature against the on-chain registry using a ZK-proof.
-4. **Authenticity Result**: User sees the full provenance and "Verified" status.
+- **Repository layer.** `Repository` has a MongoDB implementation and an in-memory one (used when `MONGODB_URI` is unset). Both pass the same contract tests.
+- **Lifecycle rules.** `domain/lifecycle.ts` defines which GS1 EPCIS business step may follow which. Advancing a product is a compare-and-set on its last step, so concurrent writers cannot both win.
+- **GTIN validation.** `domain/gtin.ts` checks the GS1 check digit.
+- **Wallet auth.** The server issues a stateless, HMAC-signed challenge. The wallet signs it, the server recovers the address, looks up the role, and returns a 12 hour JWT. Writes are role-checked when `AUTH_REQUIRED` is on.
+- **Ownership proofs.** A per-product challenge is signed by the claimed owner. The server checks the signature and compares the address with the registered owner, or with `ownerOf` on-chain when `RPC_URL` and `NFT_CONTRACT_ADDRESS` are set.
 
-## 4. GS1 EPCIS Interoperability
-We use the **Electronic Product Code Information Services (EPCIS)** standard to ensure interoperability with global supply chains.
-- **What**: Product ID (GTIN + Serial).
-- **When**: Timestamp of events.
-- **Where**: Location (GLN).
-- **Why**: Business step (e.g., shipping, receiving).
+## Frontend (`frontend/`)
 
-## 5. Scalability (2000+ TPS)
-- **Batching**: Minting and state updates are batched off-chain and committed to Polygon in periodic intervals.
-- **Hybrid State**: High-frequency tracking events are stored in MongoDB (see `database/` and `backend/` models), while critical ownership changes are on-chain. (Earlier prototypes may use Firestore; production layout targets MongoDB + Express.)
+React 19 + Vite. If the API cannot be reached, the app switches to an in-browser mock (`lib/mockApi.ts`) that applies the same rules and keeps data in `localStorage`. The demo token `0xde70a11ce0000001` always resolves locally, so anyone can try the full journey from the Verify search bar.
+
+## Data flow: verifying a product
+
+1. A shopper scans the QR code or enters the token ID.
+2. The app fetches `/api/metadata/:tokenId`: product, events, and the on-chain view when configured.
+3. The record is shown with its provenance timeline and current status.
+4. To prove ownership, the wallet signs a challenge and the API checks the signature against the registered owner.
+
+## GS1 EPCIS
+
+Events follow the EPCIS who/what/when/where/why model: product (GTIN + serial), event time, read point (GLN), and business step (`urn:epcglobal:cbv:bizstep:*`).
+
+## Not built yet
+
+Zero-knowledge ownership proofs, batch anchoring of events to a rollup, and a hosted API. The signature-based proof above is the current mechanism.

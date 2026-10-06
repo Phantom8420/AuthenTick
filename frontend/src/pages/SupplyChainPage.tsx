@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { Boxes, PackageOpen, Radio, Route, Truck } from "lucide-react";
+import { Boxes, PackageOpen, Radio, Route, ShoppingBag, Truck } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { Field } from "@/components/Field";
 import { Timeline, type ChainEvent } from "@/components/Timeline";
@@ -11,6 +11,7 @@ const steps = [
   { key: "shipping", label: "Shipping", icon: Truck },
   { key: "receiving", label: "Receiving", icon: PackageOpen },
   { key: "storing", label: "Storing", icon: Boxes },
+  { key: "selling", label: "Selling", icon: ShoppingBag },
 ] as const;
 
 export default function SupplyChainPage() {

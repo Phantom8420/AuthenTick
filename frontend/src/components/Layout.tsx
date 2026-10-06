@@ -6,6 +6,7 @@ import { useWallet } from "@/context/WalletContext";
 import { useDemo } from "@/context/DemoContext";
 import { Logo } from "@/components/Logo";
 import { short } from "@/lib/format";
+import { REPO_URL } from "@/lib/links";
 
 const links = [
   { to: "/", label: "Home", end: true },
@@ -13,6 +14,7 @@ const links = [
   { to: "/manufacturer", label: "Manufacturer" },
   { to: "/supply-chain", label: "Supply chain" },
   { to: "/demo", label: "Demo" },
+  { to: "/docs", label: "Docs" },
 ];
 
 export function Layout() {
@@ -101,7 +103,13 @@ export function Layout() {
 
       <footer className="footer">
         <span>© AuthenTick — immutable provenance for physical goods.</span>
-        <span>ERC-721 · GS1 EPCIS · ZK-ready</span>
+        <span>
+          <Link to="/docs">Docs</Link> ·{" "}
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>{" "}
+          · ERC-721 · GS1 EPCIS
+        </span>
       </footer>
     </div>
   );

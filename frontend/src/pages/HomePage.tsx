@@ -74,6 +74,14 @@ function Hero() {
               digital future.
             </motion.span>
           </h1>
+          <motion.p
+            className="byline"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.8, ease }}
+          >
+            Mint a digital twin for every product, log each handoff on the supply chain, and let anyone scan to prove it's real.
+          </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.8, ease }}>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
               <Link to="/verify" className="btn">

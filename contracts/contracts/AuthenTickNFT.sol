@@ -2,66 +2,90 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 
 /**
  * @title AuthenTickNFT
- * @dev Digital twin (ERC-721) for physical products with GS1-oriented metadata.
+ * @dev Digital twin (ERC-721) for a physical product. The token id is derived
+ *      from (gtin, serial), so a serialized item can only ever be minted once.
  */
-contract AuthenTickNFT is ERC721, AccessControl {
+contract AuthenTickNFT is ERC721 {
     bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
-    bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
-    bytes32 public constant RETAILER_ROLE = keccak256("RETAILER_ROLE");
 
     struct ProductMetadata {
         string gtin;
         string serial;
         uint256 batchId;
         uint256 createdAt;
+        address manufacturer;
         bool isVerified;
     }
 
-    mapping(uint256 => ProductMetadata) public products;
-    mapping(string => bool) private _usedSerials;
+    IAccessControl public immutable roles;
+    mapping(uint256 => ProductMetadata) private _products;
 
-    event ProductMinted(uint256 indexed tokenId, string gtin, string serial);
+    event ProductMinted(uint256 indexed tokenId, string gtin, string serial, address indexed manufacturer);
+    event ProductRevoked(uint256 indexed tokenId, address indexed by, string reason);
 
-    constructor() ERC721("AuthenTick Product", "ATK") {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    error NotManufacturer();
+    error NotAuthorized();
+    error AlreadyMinted(uint256 tokenId);
+    error UnknownProduct(uint256 tokenId);
+    error InvalidInput();
+
+    constructor(IAccessControl roleManager) ERC721("AuthenTick Product", "ATK") {
+        roles = roleManager;
+    }
+
+    /// Token id for a serialized item. abi.encode keeps ("1","23") and ("12","3") apart.
+    function tokenIdFor(string memory gtin, string memory serial) public pure returns (uint256) {
+        return uint256(keccak256(abi.encode(gtin, serial)));
     }
 
     function mintProduct(
         address to,
-        string memory gtin,
-        string memory serial,
+        string calldata gtin,
+        string calldata serial,
         uint256 batchId
-    ) public onlyRole(MANUFACTURER_ROLE) returns (uint256) {
-        string memory serialKey = string(abi.encodePacked(gtin, serial));
-        require(!_usedSerials[serialKey], "Serial already exists");
+    ) external returns (uint256 tokenId) {
+        if (!roles.hasRole(MANUFACTURER_ROLE, msg.sender)) revert NotManufacturer();
+        if (bytes(gtin).length != 14 || bytes(serial).length == 0) revert InvalidInput();
 
-        uint256 tokenId = uint256(keccak256(abi.encodePacked(serialKey)));
-        require(_ownerOf(tokenId) == address(0), "Token id collision");
-        _safeMint(to, tokenId);
+        tokenId = tokenIdFor(gtin, serial);
+        if (_ownerOf(tokenId) != address(0)) revert AlreadyMinted(tokenId);
 
-        products[tokenId] = ProductMetadata({
+        _products[tokenId] = ProductMetadata({
             gtin: gtin,
             serial: serial,
             batchId: batchId,
             createdAt: block.timestamp,
+            manufacturer: msg.sender,
             isVerified: true
         });
+        _safeMint(to, tokenId);
+        emit ProductMinted(tokenId, gtin, serial, msg.sender);
+    }
 
-        _usedSerials[serialKey] = true;
-        emit ProductMinted(tokenId, gtin, serial);
-        return tokenId;
+    /// Flag a product as no longer authentic (recall, theft, cloned serial). Irreversible.
+    function revokeProduct(uint256 tokenId, string calldata reason) external {
+        ProductMetadata storage p = _products[tokenId];
+        if (p.createdAt == 0) revert UnknownProduct(tokenId);
+        bool isAdmin = roles.hasRole(0x00, msg.sender);
+        if (msg.sender != p.manufacturer && !isAdmin) revert NotAuthorized();
+        p.isVerified = false;
+        emit ProductRevoked(tokenId, msg.sender, reason);
     }
 
     function getProduct(uint256 tokenId) public view returns (ProductMetadata memory) {
-        require(_ownerOf(tokenId) != address(0), "Product does not exist");
-        return products[tokenId];
+        if (_products[tokenId].createdAt == 0) revert UnknownProduct(tokenId);
+        return _products[tokenId];
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl) returns (bool) {
-        return super.supportsInterface(interfaceId);
+    function isAuthentic(uint256 tokenId) public view returns (bool) {
+        return _products[tokenId].isVerified;
+    }
+
+    function exists(uint256 tokenId) external view returns (bool) {
+        return _ownerOf(tokenId) != address(0);
     }
 }
