@@ -46,6 +46,15 @@ Set `RPC_URL`, `NFT_CONTRACT_ADDRESS`, `REGISTRY_CONTRACT_ADDRESS` and `RELAYER_
 
 The relayer is a trust assumption: the API decides who may do what, and the contracts enforce ordering and revocation. Try it end to end against a local node with `npm run smoke:chain` (starts Hardhat, deploys, runs a full product life, checks the contracts directly).
 
+## Scan anomaly detection
+
+Every product lookup counts as a scan. The API logs, per token and for the last 24 hours, which *network* each scan came from (the /24 of the IP, hashed with a server secret; addresses are never stored) and scores the pattern in `services/risk.ts`:
+
+- **Spread:** a genuine label is read in a few places, a photocopied one shows up everywhere. Distinct networks above 4 (above 2 once the item is sold) raise the score.
+- **Bursts:** more than 8 scans inside one minute looks like a script probing the code.
+
+`score = 100 * (1 - exp(-(0.28 * spread + 0.12 * probing)))`, with 35 and 70 as the medium and high cut-offs. Lookups return `risk: { score, level, reasons, scans, sources }` and the web app shows it on the product page, flagging a likely clone. It is a transparent statistical model, not a trained network, so every reason traces back to a number. The history is in memory (with several API instances, move it to Redis). The in-browser demo mirrors the same function (`frontend/src/lib/risk.ts`); on the demo item, press *Simulate a cloned label*.
+
 ## Logs
 
 One JSON line per request (`id`, `method`, `path`, `status`, `ms`, `user`); the id is also returned as `X-Request-Id`. Send your own `X-Request-Id` to trace a call across services.

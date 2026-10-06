@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/api/client";
 import { bizKey } from "@/lib/format";
 import type { ChainEvent } from "@/components/Timeline";
+import type { Risk } from "@/lib/risk";
 
 const KEY = "authentick.recent";
 const MAX = 12;
@@ -18,6 +19,8 @@ export type ProductRecord = {
     currentOwner?: string;
   };
   events: ChainEvent[];
+  /** How suspicious the scan pattern for this item looks. */
+  risk?: Risk;
 };
 
 const read = (): string[] => {

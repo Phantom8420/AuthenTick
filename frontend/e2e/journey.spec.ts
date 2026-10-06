@@ -40,3 +40,17 @@ test("an unknown token says so instead of hanging", async ({ page }) => {
   await page.goto("/product/0xdoesnotexist");
   await expect(page.getByText(/can.t verify this product/i).first()).toBeVisible();
 });
+
+test("a cloned label is flagged as suspicious, and restarting clears it", async ({ page }) => {
+  await page.goto(`/product/${DEMO_TOKEN}`);
+  await expect(page.getByText("Scan risk")).toBeVisible();
+  await expect(page.getByText("Normal", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Simulate a cloned label" }).click();
+  await expect(page.getByText("Suspicious", { exact: true })).toBeVisible();
+  await expect(page.getByText(/different networks scanned this code/)).toBeVisible();
+  await expect(page.getByText("Possible clone: check details")).toBeVisible();
+
+  await page.getByRole("button", { name: "Restart journey" }).click();
+  await expect(page.getByText("Normal", { exact: true })).toBeVisible();
+});

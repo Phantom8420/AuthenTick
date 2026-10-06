@@ -17,6 +17,7 @@ import { verifyRouter } from "./routes/verify.js";
 import { requestLog } from "./middleware/requestLog.js";
 import { Anchor } from "./services/anchor.js";
 import { NonceStore } from "./services/nonces.js";
+import { ScanLog } from "./services/risk.js";
 import type { Chain } from "./config/blockchain.js";
 
 export function createApp(env: Env, repo: Repository, chain: Chain | null = null) {
@@ -28,6 +29,7 @@ export function createApp(env: Env, repo: Repository, chain: Chain | null = null
     registry: chain?.registry ?? null,
     anchor: chain?.write ? new Anchor(chain.write) : null,
     nonces: new NonceStore(),
+    scans: new ScanLog(),
   };
 
   // behind nginx / a platform proxy, so client IPs are real for rate limiting

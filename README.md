@@ -26,6 +26,10 @@ Writes need a wallet sign-in when `AUTH_REQUIRED=true` (the default in productio
 
 Events must follow the lifecycle: `commissioning → shipping → receiving → storing → selling`, with `shipping` allowed again after receiving or storing. A sold item is final. GTINs are checked against the GS1 check digit, and a token ID or GTIN + serial can only be registered once.
 
+## Clone detection
+
+Each lookup is scored for the pattern a photocopied label leaves: many different networks scanning one code, or scans in bursts. The product page shows a *Scan risk* meter and flags a likely clone. Try it on the demo item with *Simulate a cloned label*. Details in [backend/README.md](backend/README.md#scan-anomaly-detection).
+
 ## Repository layout
 
 | Folder | What it is |

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DEMO_TOKEN, isDemoToken, isValidGtin14, mockRequest, resetDemoToken, resetMock } from "./mockApi";
+import { DEMO_TOKEN, isDemoToken, isValidGtin14, mockRequest, resetDemoToken, resetMock, simulateClonedScans } from "./mockApi";
 
 // the mock waits a few hundred ms to feel real; tests do not need that
 vi.stubGlobal("setTimeout", ((fn: () => void) => {
@@ -60,6 +60,21 @@ describe("demo token", () => {
 
     resetDemoToken();
     expect((await get(DEMO_TOKEN)).events).toHaveLength(1);
+  });
+});
+
+describe("scan risk", () => {
+  it("starts normal, turns suspicious after a cloned-label attack, and resets with the journey", async () => {
+    const first = (await get(DEMO_TOKEN)) as unknown as { risk: { level: string; sources: number } };
+    expect(first.risk).toMatchObject({ level: "low", sources: 1 });
+
+    simulateClonedScans(DEMO_TOKEN);
+    const after = (await get(DEMO_TOKEN)) as unknown as { risk: { level: string; reasons: string[] } };
+    expect(after.risk.level).toBe("high");
+    expect(after.risk.reasons[0]).toMatch(/different networks/);
+
+    resetDemoToken();
+    expect(((await get(DEMO_TOKEN)) as unknown as { risk: { level: string } }).risk.level).toBe("low");
   });
 });
 

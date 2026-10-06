@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Boxes, Copy, Fingerprint, History, KeyRound, PackageOpen, RotateCcw, ScanLine, ShoppingBag, Sparkles, Truck, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Boxes, Copy, Fingerprint, History, KeyRound, PackageOpen, RotateCcw, ScanLine, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles, Truck, Wallet, type LucideIcon } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { apiGet, apiPost } from "@/api/client";
 import { Seal } from "@/components/Seal";
@@ -9,7 +9,7 @@ import { Timeline } from "@/components/Timeline";
 import { useToast } from "@/context/ToastContext";
 import { useWallet } from "@/context/WalletContext";
 import { bizKey, short, statusLabel } from "@/lib/format";
-import { isDemoToken, resetDemoToken } from "@/lib/mockApi";
+import { isDemoToken, resetDemoToken, simulateClonedScans } from "@/lib/mockApi";
 import { STAGES, countStages, remember, type ProductRecord } from "@/lib/registry";
 
 type Load =
@@ -85,6 +85,11 @@ export default function ProductDetailsPage() {
     await fetchRecord();
   }
 
+  async function cloneAttack() {
+    simulateClonedScans(id);
+    await fetchRecord();
+  }
+
   async function proveOwnership() {
     const demoItem = isDemoToken(id);
     if (!account && !demoItem) return connectWallet();
@@ -152,7 +157,7 @@ export default function ProductDetailsPage() {
     );
   }
 
-  const { product, events } = load.data;
+  const { product, events, risk } = load.data;
   const link = `${window.location.origin}/product/${encodeURIComponent(product.tokenId)}`;
   const counts = countStages(events);
   const demoItem = isDemoToken(product.tokenId);
@@ -175,7 +180,11 @@ export default function ProductDetailsPage() {
       <motion.div className="sheet verdict ok" {...rise()}>
         <Seal ok />
         <div>
-          <span className="tag">Verified authentic</span>
+          {risk?.level === "high" ? (
+            <span className="tag red">Possible clone: check details</span>
+          ) : (
+            <span className="tag">Verified authentic</span>
+          )}
           <h1 className="d d-lg">{product.name}</h1>
           <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
             {product.tokenId}
@@ -206,6 +215,40 @@ export default function ProductDetailsPage() {
               <button className="btn btn-sm" style={{ marginTop: nextStep ? 12 : 0 }} onClick={() => void restart()}>
                 <RotateCcw size={14} /> Restart journey
               </button>
+              <button className="btn btn-sm" style={{ marginTop: 12, marginLeft: 10 }} onClick={() => void cloneAttack()}>
+                <ShieldAlert size={14} /> Simulate a cloned label
+              </button>
+            </motion.div>
+          )}
+
+          {risk && (
+            <motion.div className="card" {...rise(0.1)}>
+              <div className="card-label">
+                {risk.level === "low" ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />} Scan risk
+                <span className={`tag${risk.level === "low" ? "" : " red"}`} style={{ marginLeft: "auto" }}>
+                  {risk.level === "low" ? "Normal" : risk.level === "medium" ? "Unusual" : "Suspicious"}
+                </span>
+              </div>
+              <div
+                role="meter"
+                aria-label="Scan risk score"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={risk.score}
+                style={{ height: 8, borderRadius: 8, background: "rgba(255,255,255,0.08)", overflow: "hidden", marginBottom: 14 }}
+              >
+                <div style={{ width: `${Math.max(risk.score, 3)}%`, height: "100%", background: risk.level === "low" ? "var(--teal)" : "#d9736e" }} />
+              </div>
+              <p className="muted" style={{ fontSize: "0.88rem" }}>
+                {risk.reasons.length
+                  ? risk.reasons.join(" ")
+                  : `Scanned ${risk.scans} time${risk.scans === 1 ? "" : "s"} from ${risk.sources} network${risk.sources === 1 ? "" : "s"} in the last 24 hours. Nothing unusual.`}
+              </p>
+              {risk.level !== "low" && (
+                <p className="muted" style={{ fontSize: "0.82rem", marginTop: 10 }}>
+                  A genuine label is read in a few places. A copied one turns up everywhere. Check where you bought this item.
+                </p>
+              )}
             </motion.div>
           )}
 

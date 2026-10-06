@@ -5,6 +5,7 @@ import type { Env } from "./config/env.js";
 import type { Repository } from "./repo/types.js";
 import type { Anchor } from "./services/anchor.js";
 import type { NonceStore } from "./services/nonces.js";
+import type { ScanLog } from "./services/risk.js";
 
 export interface Deps {
   env: Env;
@@ -15,6 +16,7 @@ export interface Deps {
   /** Registry contract for reading stages. */
   registry: Contract | null;
   nonces: NonceStore;
+  scans: ScanLog;
 }
 
 /** Express 4 does not catch rejected promises from async handlers. */

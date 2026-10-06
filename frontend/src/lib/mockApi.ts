@@ -4,6 +4,8 @@
  * the real routes and error shapes and persists to localStorage.
  */
 
+import { assessRisk, type Scan } from "./risk";
+
 const FLAG = "authentick.demo";
 const STORE = "authentick.mock";
 export const DEMO_TOKEN = "0xde70a11ce0000001";
@@ -19,7 +21,7 @@ type Product = {
   status?: string;
 };
 type Ev = { bizStep: string; readPoint: string; actor?: string; eventTime: string };
-type Store = { products: Record<string, Product>; events: Record<string, Ev[]> };
+type Store = { products: Record<string, Product>; events: Record<string, Ev[]>; scans?: Record<string, Scan[]> };
 
 export const isDemo = () => {
   try {
@@ -167,7 +169,12 @@ export async function mockRequest<T>(method: "GET" | "POST", path: string, rawBo
   if (method === "GET" && p[0] === "metadata") {
     const product = s.products[p[1]];
     if (!product) throw new Error("Product not found");
-    return { product, events: s.events[p[1]] ?? [] } as T;
+    // a lookup counts as a scan, exactly as on the real API
+    const scans = ((s.scans ||= {})[p[1]] ||= []);
+    scans.push({ t: Date.now(), src: "you" });
+    if (scans.length > 500) scans.splice(0, scans.length - 500);
+    save(s);
+    return { product, events: s.events[p[1]] ?? [], risk: assessRisk(scans, product.status) } as T;
   }
 
   // POST /api/events
@@ -221,6 +228,17 @@ export function resetDemoToken() {
   const fresh = seed();
   s.products[DEMO_TOKEN] = fresh.products[DEMO_TOKEN];
   s.events[DEMO_TOKEN] = [{ ...fresh.events[DEMO_TOKEN][0], eventTime: new Date().toISOString() }];
+  if (s.scans) delete s.scans[DEMO_TOKEN];
+  save(s);
+}
+
+/** Demo only: pretend the label was photocopied and scanned from `n` other networks. */
+export function simulateClonedScans(tokenId: string, n = 9) {
+  const s = load();
+  const id = canon(tokenId) as string;
+  const list = ((s.scans ||= {})[id] ||= []);
+  const now = Date.now();
+  for (let i = 0; i < n; i++) list.push({ t: now - i * 90_000, src: `clone-${i}` });
   save(s);
 }
 

@@ -62,7 +62,7 @@ export const productsRouter = (deps: Deps) => {
     "/:tokenId",
     wrap(async (req, res) => {
       const id = normalizeToken(req.params.tokenId);
-      const record = id && (await loadRecord(deps, id));
+      const record = id && (await loadRecord(deps, id, req));
       if (!record) throw notFound("Product not found");
       res.json(record);
     }),
