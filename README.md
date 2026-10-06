@@ -2,7 +2,7 @@
 
 **Blockchain-backed product authentication.** Mint a digital twin for every product, log each handoff on the supply chain, and let anyone scan to prove it's real.
 
-**[Open the live app](https://frontend-rho-pearl-52.vercel.app)** · [Docs](https://frontend-rho-pearl-52.vercel.app/docs) · [Architecture](docs/ARCHITECTURE.md)
+**[Open the live app](https://authen-tick-web.vercel.app)** · [Docs](https://authen-tick-web.vercel.app/docs) · [Architecture](docs/ARCHITECTURE.md)
 
 > No backend or wallet needed to try it. On the Verify page, paste the demo token `0xde70a11ce0000001` into the search bar and step the item from factory to shopper.
 
