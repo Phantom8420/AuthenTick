@@ -34,9 +34,11 @@ export default function ManufacturerPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      await apiPost("/api/products", form);
-      remember(form.tokenId);
-      setMinted(form.tokenId);
+      const { tokenId, ...rest } = form;
+      // a blank token id is derived from GTIN + serial, the same way the contract does it
+      const product = await apiPost<{ tokenId: string }>("/api/products", tokenId.trim() ? form : rest);
+      remember(product.tokenId);
+      setMinted(product.tokenId);
       toast("Digital twin minted and commissioned.", "ok");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Mint failed", "err");
@@ -91,9 +93,9 @@ export default function ManufacturerPage() {
             <Field
               full
               mono
-              required
               label="Token ID"
-              placeholder="0x… or numeric id"
+              hint="optional"
+              placeholder="Leave blank to derive from GTIN + serial"
               value={form.tokenId}
               onChange={set("tokenId")}
               action={

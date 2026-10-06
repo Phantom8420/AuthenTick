@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Html5Qrcode } from "html5-qrcode";
+import type { Html5Qrcode } from "html5-qrcode";
 import { motion } from "framer-motion";
 import { CameraOff, Search, Sparkles } from "lucide-react";
 import { DEMO_TOKEN } from "@/lib/mockApi";
@@ -17,26 +17,32 @@ export default function VerifyPage() {
   useEffect(() => {
     let cancelled = false;
     let started = false;
-    const scanner = new Html5Qrcode(READER_ID, false);
+    let scanner: Html5Qrcode | undefined;
 
     const halt = () =>
       scanner
-        .stop()
-        .then(() => scanner.clear())
+        ?.stop()
+        .then(() => scanner?.clear())
         .catch(() => {});
 
-    scanner
-      .start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1 },
-        (text) => {
-          if (cancelled) return;
-          cancelled = true;
-          navigate(`/product/${encodeURIComponent(tokenFromScan(text))}`);
-        },
-        () => {},
-      )
+    // the scanner is the heavy part of this page; load it after the search bar is usable
+    import("html5-qrcode")
+      .then(({ Html5Qrcode }) => {
+        if (cancelled) return;
+        scanner = new Html5Qrcode(READER_ID, false);
+        return scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1 },
+          (text) => {
+            if (cancelled) return;
+            cancelled = true;
+            navigate(`/product/${encodeURIComponent(tokenFromScan(text))}`);
+          },
+          () => {},
+        );
+      })
       .then(() => {
+        if (!scanner) return;
         started = true;
         if (cancelled) void halt();
         else setLive(true);

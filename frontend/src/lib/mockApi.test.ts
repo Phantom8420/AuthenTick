@@ -63,6 +63,16 @@ describe("demo token", () => {
   });
 });
 
+describe("token ids", () => {
+  it("are derived from gtin + serial when the form leaves them blank", async () => {
+    const a = (await mint({ tokenId: undefined, serial: "S-1" })) as { tokenId: string };
+    expect(a.tokenId).toMatch(/^0x[0-9a-f]{16}$/);
+    expect((await get(a.tokenId)).product.serial).toBe("S-1");
+    await expect(mint({ tokenId: undefined, serial: "S-1" })).rejects.toThrow(/already exists/);
+    expect(((await mint({ tokenId: undefined, serial: "S-2" })) as { tokenId: string }).tokenId).not.toBe(a.tokenId);
+  });
+});
+
 describe("rules match the real API", () => {
   it("rejects steps out of order and after a sale", async () => {
     await mint();

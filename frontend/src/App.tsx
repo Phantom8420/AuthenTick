@@ -1,15 +1,16 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "@/context/ToastContext";
 import { WalletProvider } from "@/context/WalletContext";
 import { DemoProvider } from "@/context/DemoContext";
 import { Layout } from "@/components/Layout";
 import HomePage from "@/pages/HomePage";
-import VerifyPage from "@/pages/VerifyPage";
-import ManufacturerPage from "@/pages/ManufacturerPage";
-import SupplyChainPage from "@/pages/SupplyChainPage";
-import ProductDetailsPage from "@/pages/ProductDetailsPage";
-import DemoPage from "@/pages/DemoPage";
-import DocsPage from "@/pages/DocsPage";
+const VerifyPage = lazy(() => import("@/pages/VerifyPage"));
+const ManufacturerPage = lazy(() => import("@/pages/ManufacturerPage"));
+const SupplyChainPage = lazy(() => import("@/pages/SupplyChainPage"));
+const ProductDetailsPage = lazy(() => import("@/pages/ProductDetailsPage"));
+const DemoPage = lazy(() => import("@/pages/DemoPage"));
+const DocsPage = lazy(() => import("@/pages/DocsPage"));
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
       <DemoProvider>
       <WalletProvider>
         <BrowserRouter>
+          <Suspense fallback={<div className="route-loading" role="status">Loading...</div>}>
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
@@ -30,6 +32,7 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </WalletProvider>
       </DemoProvider>

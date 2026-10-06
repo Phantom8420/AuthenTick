@@ -41,6 +41,7 @@ export function Layout() {
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#main">Skip to content</a>
       <div className="backdrop" aria-hidden />
 
       <div className="nav-wrap">
@@ -87,7 +88,7 @@ export function Layout() {
         </nav>
       </div>
 
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1}>
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}
