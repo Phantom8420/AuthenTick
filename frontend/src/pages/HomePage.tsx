@@ -75,9 +75,14 @@ function Hero() {
             </motion.span>
           </h1>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.8, ease }}>
-            <Link to="/verify" className="btn">
-              Verify a product
-            </Link>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link to="/verify" className="btn">
+                Verify a product
+              </Link>
+              <Link to="/demo" className="btn">
+                Run the demo
+              </Link>
+            </div>
           </motion.div>
         </div>
 

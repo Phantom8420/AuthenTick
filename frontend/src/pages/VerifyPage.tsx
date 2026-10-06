@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import { motion } from "framer-motion";
-import { CameraOff, Search } from "lucide-react";
+import { CameraOff, Search, Sparkles } from "lucide-react";
+import { DEMO_TOKEN, enableDemo } from "@/lib/mockApi";
 import { tokenFromScan } from "@/lib/format";
 
 const READER_ID = "qr-reader";
@@ -85,6 +86,18 @@ export default function VerifyPage() {
             <Search size={20} />
           </button>
         </form>
+
+        <button
+          type="button"
+          className="btn btn-sm"
+          style={{ alignSelf: "flex-start" }}
+          onClick={() => {
+            enableDemo();
+            navigate(`/product/${encodeURIComponent(DEMO_TOKEN)}`);
+          }}
+        >
+          <Sparkles size={15} /> Try a demo token
+        </button>
       </div>
 
       <motion.div
