@@ -4,6 +4,7 @@ import { z } from "zod";
 import { badRequest, notFound } from "../errors.js";
 import { normalizeToken, tokenId, wrap, type Deps } from "../http.js";
 import { issueChallenge, verifyChallenge } from "../services/challenge.js";
+import { nonceOf } from "../services/nonces.js";
 import { readOnChainProduct } from "../services/blockchainService.js";
 
 const purpose = (id: string) => `ownership:${id}`;
@@ -15,7 +16,7 @@ const proofBody = z.object({
   signature: z.string().min(1).max(200),
 });
 
-export const verifyRouter = ({ env, repo, nft }: Deps) => {
+export const verifyRouter = ({ env, repo, nft, registry, nonces }: Deps) => {
   const router = Router();
 
   // step 1: the wallet asks what to sign
@@ -41,6 +42,8 @@ export const verifyRouter = ({ env, repo, nft }: Deps) => {
         throw badRequest("This challenge is invalid or has expired. Request a new one.");
       }
 
+      if (!nonces.consume(nonceOf(body.message))) throw badRequest("This challenge was already used. Request a new one.");
+
       let signer: string;
       try {
         signer = verifyMessage(body.message, body.signature);
@@ -54,7 +57,7 @@ export const verifyRouter = ({ env, repo, nft }: Deps) => {
       }
 
       // the chain is the source of truth when configured
-      const onChain = await readOnChainProduct(nft, body.tokenId);
+      const onChain = await readOnChainProduct(nft, body.tokenId, registry);
       const registeredOwner = (onChain?.owner ?? product.currentOwner).toLowerCase();
       const verified = registeredOwner === claimed;
 

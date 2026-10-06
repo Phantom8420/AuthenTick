@@ -18,6 +18,12 @@ const schema = z.object({
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters").optional(),
   /** Comma separated wallet addresses that always get the ADMIN role. */
   ADMIN_ADDRESSES: z.string().default(""),
+  /** Use "none" only when the web app and API live on different sites (needs HTTPS). */
+  COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
+  /** OwnershipRegistry address. With RELAYER_PRIVATE_KEY this turns on on-chain anchoring. */
+  REGISTRY_CONTRACT_ADDRESS: z.string().optional(),
+  /** Wallet that holds the manufacturer, distributor and retailer roles and pays gas. */
+  RELAYER_PRIVATE_KEY: z.string().optional(),
 });
 
 export type Env = {
@@ -30,6 +36,9 @@ export type Env = {
   AUTH_REQUIRED: boolean;
   JWT_SECRET: string;
   ADMIN_ADDRESSES: string[];
+  COOKIE_SAMESITE: "lax" | "strict" | "none";
+  REGISTRY_CONTRACT_ADDRESS?: string;
+  RELAYER_PRIVATE_KEY?: string;
 };
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
@@ -53,5 +62,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     ADMIN_ADDRESSES: raw.ADMIN_ADDRESSES.split(",")
       .map((a) => a.trim().toLowerCase())
       .filter(Boolean),
+    COOKIE_SAMESITE: raw.COOKIE_SAMESITE,
+    REGISTRY_CONTRACT_ADDRESS: raw.REGISTRY_CONTRACT_ADDRESS || undefined,
+    RELAYER_PRIVATE_KEY: raw.RELAYER_PRIVATE_KEY || undefined,
   };
 }

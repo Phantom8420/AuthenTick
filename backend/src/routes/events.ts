@@ -19,7 +19,7 @@ const eventBody = z.object({
   actor: z.string().trim().max(200).optional(),
 });
 
-export const eventsRouter = ({ env, repo }: Deps) => {
+export const eventsRouter = ({ env, repo, anchor }: Deps) => {
   const router = Router();
 
   router.post(
@@ -43,6 +43,9 @@ export const eventsRouter = ({ env, repo }: Deps) => {
             : `This product is already ${product.lastStep === "selling" ? "sold" : "final"}; no further events are allowed.`,
         );
       }
+
+      // contracts refuse revoked or out-of-order tokens, so ask them before touching the database
+      await anchor?.record(body.tokenId, step);
 
       const updated = await repo.advance(body.tokenId, product.lastStep, step, statusAfter(step), {
         bizStep: toUrn(step),

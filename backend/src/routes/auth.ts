@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { getAddress, isAddress, verifyMessage } from "ethers";
 import { z } from "zod";
-import { requireRole, signToken } from "../middleware/auth.js";
+import { SESSION_COOKIE, requireRole, sessionCookieOptions, signToken } from "../middleware/auth.js";
 import { badRequest, unauthorized } from "../errors.js";
 import { wrap, type Deps } from "../http.js";
 import { issueChallenge, verifyChallenge } from "../services/challenge.js";
+import { nonceOf } from "../services/nonces.js";
 
 const loginBody = z.object({
   message: z.string().min(1).max(500),
@@ -15,7 +16,7 @@ const roleBody = z.object({
   role: z.enum(["MANUFACTURER", "DISTRIBUTOR", "RETAILER", "CUSTOMER", "ADMIN"]),
 });
 
-export const authRouter = ({ env, repo }: Deps) => {
+export const authRouter = ({ env, repo, nonces }: Deps) => {
   const router = Router();
 
   router.get("/challenge", (_req, res) => {
@@ -36,10 +37,20 @@ export const authRouter = ({ env, repo }: Deps) => {
         throw badRequest("Malformed signature");
       }
 
+      // single use: a captured signature cannot be replayed
+      if (!nonces.consume(nonceOf(message))) throw badRequest("This challenge was already used. Request a new one.");
+
       const role = env.ADMIN_ADDRESSES.includes(address) ? "ADMIN" : ((await repo.getUser(address))?.role ?? "CUSTOMER");
-      res.json({ token: signToken(env, { address, role }), address, role });
+      // the session lives in an httpOnly cookie, out of reach of page scripts
+      res.cookie(SESSION_COOKIE, signToken(env, { address, role }), sessionCookieOptions(env));
+      res.json({ address, role });
     }),
   );
+
+  router.post("/logout", (_req, res) => {
+    res.clearCookie(SESSION_COOKIE, { ...sessionCookieOptions(env), maxAge: undefined });
+    res.status(204).end();
+  });
 
   router.get("/me", (req, res) => {
     if (!req.user) throw unauthorized();

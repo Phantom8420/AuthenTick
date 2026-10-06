@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { Deps } from "../http.js";
 import { wrap } from "../http.js";
 
-export const healthRouter = ({ env, repo, nft }: Deps) => {
+export const healthRouter = ({ env, repo, nft, anchor }: Deps) => {
   const router = Router();
 
   router.get(
@@ -15,6 +15,8 @@ export const healthRouter = ({ env, repo, nft }: Deps) => {
         store: env.MONGODB_URI ? "mongodb" : "memory",
         authRequired: env.AUTH_REQUIRED,
         chain: Boolean(nft),
+        anchoring: Boolean(anchor),
+        uptimeSeconds: Math.round(process.uptime()),
         timestamp: new Date().toISOString(),
       });
     }),

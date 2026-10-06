@@ -3,12 +3,14 @@ import { z } from "zod";
 import { requireRole } from "../middleware/auth.js";
 import { isValidGtin14 } from "../domain/gtin.js";
 import { toUrn } from "../domain/lifecycle.js";
-import { notFound } from "../errors.js";
+import { badRequest, notFound } from "../errors.js";
 import { normalizeToken, tokenId, wrap, type Deps } from "../http.js";
+import { deriveTokenId } from "../services/anchor.js";
 import { loadRecord } from "../services/records.js";
 
 const createBody = z.object({
-  tokenId,
+  /** Optional: derived from GTIN + serial (same as the contract) when omitted. */
+  tokenId: tokenId.optional(),
   name: z.string().trim().min(1).max(200),
   gtin: z.string().refine(isValidGtin14, "GTIN must be 14 digits with a valid GS1 check digit"),
   serial: z.string().trim().min(1).max(100),
@@ -17,7 +19,7 @@ const createBody = z.object({
 });
 
 export const productsRouter = (deps: Deps) => {
-  const { env, repo } = deps;
+  const { env, repo, anchor } = deps;
   const router = Router();
 
   router.post(
@@ -28,9 +30,16 @@ export const productsRouter = (deps: Deps) => {
       // a signed-in manufacturer is always recorded under their own wallet
       const manufacturerId = req.user?.address ?? body.manufacturerId ?? "unknown-manufacturer";
 
+      const id = body.tokenId ?? deriveTokenId(body.gtin, body.serial);
+      if (anchor && BigInt(id) !== BigInt(deriveTokenId(body.gtin, body.serial))) {
+        throw badRequest("With on-chain anchoring the token id must be derived from GTIN + serial. Omit tokenId to have it computed.");
+      }
+      // the chain is the authority on uniqueness, so mint there first
+      await anchor?.mint(manufacturerId, body.gtin, body.serial, body.batchId);
+
       const product = await repo.createProduct(
         {
-          tokenId: body.tokenId,
+          tokenId: id,
           name: body.name,
           gtin: body.gtin,
           serial: body.serial,
