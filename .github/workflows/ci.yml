@@ -86,9 +86,7 @@ jobs:
             frontend/test-results
 
   slither:
-    # advisory: findings show up in the log without failing the build
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -101,4 +99,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install slither-analyzer solc-select && solc-select install 0.8.28 && solc-select use 0.8.28
-      - run: slither contracts/contracts --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/" --filter-paths "node_modules|@openzeppelin"
+      # createdAt == 0 is the "never minted" sentinel and the pragma range is deliberate, so those
+      # detectors are excluded; anything else fails the build
+      - run: >
+          slither contracts/contracts
+          --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/"
+          --filter-paths "node_modules|@openzeppelin"
+          --exclude incorrect-equality,timestamp,solc-version
