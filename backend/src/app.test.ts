@@ -56,6 +56,17 @@ describe("open mode (local development)", () => {
     expect((await api.get("/api/metadata/" + res.body.tokenId)).status).toBe(200);
   });
 
+  it("scores scan risk on every lookup", async () => {
+    await api.post("/api/products").send(product());
+    const first = await api.get("/api/metadata/0xabc123");
+    expect(first.body.risk).toMatchObject({ level: "low", scans: 1, sources: 1 });
+    // a script hammering one product trips the burst check
+    let last = first;
+    for (let i = 0; i < 25; i++) last = await api.get("/api/metadata/0xabc123");
+    expect(last.body.risk.level).not.toBe("low");
+    expect(last.body.risk.reasons.join(" ")).toMatch(/within one minute/);
+  });
+
   it("refuses to overwrite an existing token", async () => {
     await api.post("/api/products").send(product());
     const res = await api.post("/api/products").send(product({ name: "Fake" }));

@@ -24,6 +24,7 @@ AuthenTick is a hybrid system. Ownership and authenticity are anchored on a publ
 - **GTIN validation.** `domain/gtin.ts` checks the GS1 check digit.
 - **Wallet auth.** The server issues a stateless, HMAC-signed challenge. The wallet signs it, the server recovers the address, looks up the role, and sets a 12 hour JWT in an `httpOnly` cookie (writes also need an anti-CSRF header). Each challenge is accepted once. Writes are role-checked when `AUTH_REQUIRED` is on.
 - **On-chain anchoring.** With a relayer key configured, minting and each lifecycle event are mirrored to `AuthenTickNFT` and `OwnershipRegistry` before they are recorded off-chain, so the contracts have the final say on duplicates, ordering and revocation. See [backend/README.md](../backend/README.md#on-chain-anchoring).
+- **Scan anomaly detection.** Lookups are scored for clone-like patterns (many networks, or bursts) and the result is returned with the record. See [backend/README.md](../backend/README.md#scan-anomaly-detection).
 - **Ownership proofs.** A per-product challenge is signed by the claimed owner. The server checks the signature and compares the address with the registered owner, or with `ownerOf` on-chain when `RPC_URL` and `NFT_CONTRACT_ADDRESS` are set.
 
 ## Frontend (`frontend/`)
@@ -36,6 +37,10 @@ React 19 + Vite. If the API cannot be reached, the app switches to an in-browser
 2. The app fetches `/api/metadata/:tokenId`: product, events, and the on-chain view when configured.
 3. The record is shown with its provenance timeline and current status.
 4. To prove ownership, the wallet signs a challenge and the API checks the signature against the registered owner.
+
+## Gas costs (measured)
+
+`contracts/test/Gas.ts` measures each action and fails if one gets more expensive: mint about 196k gas, the four stage changes about 64k, 47k, 47k and 47k, revoke about 40k. A product's whole on-chain life is about 400k gas. Only coarse stages go on-chain; EPCIS events stay in the database.
 
 ## GS1 EPCIS
 
