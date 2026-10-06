@@ -1,35 +1,18 @@
 import type { Contract } from "ethers";
 
-type OnChainProduct = {
-  gtin: string;
-  serial: string;
-  batchId: string;
-  createdAt: number;
-  isVerified: boolean;
+export type OnChainProduct = {
   owner: string;
+  manufacturer: string;
+  isAuthentic: boolean;
 };
 
+/** Reads the token from the NFT contract. Null when the chain is not configured or the token is unknown. */
 export async function readOnChainProduct(nft: Contract | null, tokenId: string): Promise<OnChainProduct | null> {
   if (!nft) return null;
   try {
     const id = BigInt(tokenId);
-    const raw = await nft.getProduct(id);
-    const meta = raw as unknown as {
-      gtin: string;
-      serial: string;
-      batchId: bigint;
-      createdAt: bigint;
-      isVerified: boolean;
-    };
-    const owner = (await nft.ownerOf(id)) as string;
-    return {
-      gtin: meta.gtin,
-      serial: meta.serial,
-      batchId: meta.batchId.toString(),
-      createdAt: Number(meta.createdAt),
-      isVerified: meta.isVerified,
-      owner,
-    };
+    const [meta, owner, authentic] = await Promise.all([nft.getProduct(id), nft.ownerOf(id), nft.isAuthentic(id)]);
+    return { owner: owner as string, manufacturer: meta.manufacturer as string, isAuthentic: authentic as boolean };
   } catch {
     return null;
   }

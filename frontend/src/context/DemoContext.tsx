@@ -15,7 +15,13 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       const on = demoActive();
       setState(on);
       if ((e as CustomEvent).detail?.auto && on) {
-        toast("No backend reachable, so demo mode is on. Everything runs in your browser.", "info");
+        const reason = (e as CustomEvent).detail?.reason;
+        toast(
+          reason === "token"
+            ? "Demo token recognised. Demo mode is on and everything runs in your browser."
+            : "No backend reachable, so demo mode is on. Everything runs in your browser.",
+          "info",
+        );
       }
     };
     window.addEventListener("authentick:demo", onChange);

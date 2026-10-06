@@ -1,40 +1,32 @@
 import mongoose, { Schema } from "mongoose";
 
-export type EpcisEventType = "OBJECT_EVENT" | "AGGREGATION_EVENT" | "TRANSACTION_EVENT";
-export type EpcisAction = "ADD" | "OBSERVE" | "DELETE";
-
 export interface EpcisEventDoc {
   productId: string;
-  type: EpcisEventType;
-  action: EpcisAction;
+  type: "OBJECT_EVENT";
+  action: "ADD" | "OBSERVE";
   bizStep: string;
-  disposition: string;
   readPoint: string;
   eventTime: Date;
   recordedTime: Date;
-  actor: string;
+  actor?: string;
 }
 
 const epcisEventSchema = new Schema<EpcisEventDoc>(
   {
-    productId: { type: String, required: true, index: true },
-    type: {
-      type: String,
-      enum: ["OBJECT_EVENT", "AGGREGATION_EVENT", "TRANSACTION_EVENT"],
-      required: true,
-    },
-    action: { type: String, enum: ["ADD", "OBSERVE", "DELETE"], required: true },
+    productId: { type: String, required: true },
+    type: { type: String, enum: ["OBJECT_EVENT"], default: "OBJECT_EVENT" },
+    action: { type: String, enum: ["ADD", "OBSERVE"], required: true },
     bizStep: { type: String, required: true },
-    disposition: { type: String, required: true },
     readPoint: { type: String, required: true },
     eventTime: { type: Date, required: true },
     recordedTime: { type: Date, required: true },
-    actor: { type: String, required: true },
+    actor: { type: String },
   },
   { timestamps: false },
 );
 
-epcisEventSchema.index({ productId: 1, eventTime: -1 });
+epcisEventSchema.index({ productId: 1, eventTime: 1 });
 
-export const EpcisEvent =
-  mongoose.models.EpcisEvent ?? mongoose.model<EpcisEventDoc>("EpcisEvent", epcisEventSchema);
+export const EpcisEventModel =
+  (mongoose.models.EpcisEvent as mongoose.Model<EpcisEventDoc>) ??
+  mongoose.model<EpcisEventDoc>("EpcisEvent", epcisEventSchema);

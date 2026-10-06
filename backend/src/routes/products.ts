@@ -1,71 +1,63 @@
-// backend/src/routes/products.ts
 import { Router } from "express";
 import { z } from "zod";
-import { products, events, Product } from "../storage.js";
+import { requireRole } from "../middleware/auth.js";
+import { isValidGtin14 } from "../domain/gtin.js";
+import { toUrn } from "../domain/lifecycle.js";
+import { notFound } from "../errors.js";
+import { normalizeToken, tokenId, wrap, type Deps } from "../http.js";
+import { loadRecord } from "../services/records.js";
 
-// Validation schema for incoming product data
 const createBody = z.object({
-  tokenId: z.string().min(1),
-  gtin: z.string().length(14),
-  serial: z.string().min(1),
-  name: z.string().min(1).max(200),
-  manufacturerId: z.string().min(1),
-  batchId: z.string().min(1),
-  currentOwner: z.string().optional(),
-  status: z.enum(["PRODUCTION", "IN_TRANSIT", "RETAIL", "SOLD"]).optional(),
-  imageUrl: z.string().max(2048).optional(),
+  tokenId,
+  name: z.string().trim().min(1).max(200),
+  gtin: z.string().refine(isValidGtin14, "GTIN must be 14 digits with a valid GS1 check digit"),
+  serial: z.string().trim().min(1).max(100),
+  batchId: z.string().trim().min(1).max(100),
+  manufacturerId: z.string().trim().min(1).max(200).optional(),
 });
 
-export const productsRouter = () => {
+export const productsRouter = (deps: Deps) => {
+  const { env, repo } = deps;
   const router = Router();
 
-  // Create a new product
-  router.post("/", (req, res) => {
-    try {
+  router.post(
+    "/",
+    requireRole(env, "MANUFACTURER"),
+    wrap(async (req, res) => {
       const body = createBody.parse(req.body);
+      // a signed-in manufacturer is always recorded under their own wallet
+      const manufacturerId = req.user?.address ?? body.manufacturerId ?? "unknown-manufacturer";
 
-      const product: Product = {
-        tokenId: body.tokenId,
-        gtin: body.gtin,
-        serial: body.serial,
-        name: body.name,
-        batchId: body.batchId,
-        manufacturerId: body.manufacturerId,
-        currentOwner: body.currentOwner ?? body.manufacturerId,
-        status: body.status ?? "PRODUCTION",
-      };
-
-      products[body.tokenId] = product;
-      events[body.tokenId] = events[body.tokenId] || [];
-
-      // Automatically add a commissioning event
-      events[body.tokenId].push({
-        bizStep: "commissioning",
-        readPoint: "GLN-FACTORY",
-        actor: body.manufacturerId,
-        eventTime: new Date().toISOString(),
-      });
-
+      const product = await repo.createProduct(
+        {
+          tokenId: body.tokenId,
+          name: body.name,
+          gtin: body.gtin,
+          serial: body.serial,
+          batchId: body.batchId,
+          manufacturerId,
+          currentOwner: manufacturerId,
+        },
+        {
+          bizStep: toUrn("commissioning"),
+          readPoint: "GLN-FACTORY",
+          actor: manufacturerId,
+          eventTime: new Date().toISOString(),
+        },
+      );
       res.status(201).json(product);
-    } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : "Invalid payload" });
-    }
-  });
+    }),
+  );
 
-  // Get a product by tokenId
-  router.get("/:tokenId", (req, res) => {
-    const { tokenId } = req.params;
-    const product = products[tokenId];
-
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    res.json({
-      offChain: product,
-      events: events[tokenId] || [],
-    });
-  });
+  router.get(
+    "/:tokenId",
+    wrap(async (req, res) => {
+      const id = normalizeToken(req.params.tokenId);
+      const record = id && (await loadRecord(deps, id));
+      if (!record) throw notFound("Product not found");
+      res.json(record);
+    }),
+  );
 
   return router;
 };

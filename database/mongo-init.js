@@ -16,4 +16,5 @@ db.createUser({
 
 db.products.createIndex({ tokenId: 1 }, { unique: true });
 db.products.createIndex({ gtin: 1, serial: 1 }, { unique: true });
-db.epcisevents.createIndex({ productId: 1, eventTime: -1 });
+db.epcisevents.createIndex({ productId: 1, eventTime: 1 });
+db.users.createIndex({ address: 1 }, { unique: true });

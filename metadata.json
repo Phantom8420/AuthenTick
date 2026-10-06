@@ -1,7 +1,0 @@
-{
-  "name": "AuthenTick",
-  "description": "A production-grade blockchain-based anti-counterfeit and product ownership system with NFT digital twins, GS1 EPCIS interoperability, and ZK-privacy.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}

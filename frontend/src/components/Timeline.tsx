@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Boxes, PackageCheck, PackageOpen, Sparkles, Truck, type LucideIcon } from "lucide-react";
+import { Boxes, PackageCheck, PackageOpen, ShoppingBag, Sparkles, Truck, type LucideIcon } from "lucide-react";
 import { bizKey, bizLabel } from "@/lib/format";
 
 export type ChainEvent = {
@@ -14,6 +14,7 @@ const icons: Record<string, LucideIcon> = {
   shipping: Truck,
   receiving: PackageOpen,
   storing: Boxes,
+  selling: ShoppingBag,
 };
 
 export function Timeline({ events }: { events: ChainEvent[] }) {

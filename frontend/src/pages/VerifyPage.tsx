@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import { motion } from "framer-motion";
 import { CameraOff, Search, Sparkles } from "lucide-react";
-import { DEMO_TOKEN, enableDemo } from "@/lib/mockApi";
+import { DEMO_TOKEN } from "@/lib/mockApi";
 import { tokenFromScan } from "@/lib/format";
 
 const READER_ID = "qr-reader";
@@ -75,8 +75,9 @@ export default function VerifyPage() {
 
         <form onSubmit={lookup} className="input-row">
           <input
+            id="token-input"
             className="input mono"
-            placeholder="Token ID or product link"
+            placeholder={`Token ID or product link, e.g. ${DEMO_TOKEN}`}
             value={manual}
             onChange={(e) => setManual(e.target.value)}
             aria-label="Token ID"
@@ -92,11 +93,11 @@ export default function VerifyPage() {
           className="btn btn-sm"
           style={{ alignSelf: "flex-start" }}
           onClick={() => {
-            enableDemo();
-            navigate(`/product/${encodeURIComponent(DEMO_TOKEN)}`);
+            setManual(DEMO_TOKEN);
+            document.getElementById("token-input")?.focus();
           }}
         >
-          <Sparkles size={15} /> Try a demo token
+          <Sparkles size={15} /> Use the demo token
         </button>
       </div>
 

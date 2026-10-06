@@ -1,20 +1,16 @@
-# Node modules
-/node_modules
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.vercel/
+*.log
+.DS_Store
 
-# Compilation output
-/dist
-
-# pnpm deploy output
-/bundle
-
-# Hardhat Build Artifacts
-/artifacts
-
-# Hardhat compilation (v2) support directory
-/cache
-
-# Typechain output
-/types
-
-# Hardhat coverage reports
-/coverage
+# hardhat
+contracts/artifacts/
+contracts/cache/
+contracts/types/
+contracts/ignition/deployments/
+contracts/deployedAddresses.json

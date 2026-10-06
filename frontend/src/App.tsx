@@ -9,6 +9,7 @@ import ManufacturerPage from "@/pages/ManufacturerPage";
 import SupplyChainPage from "@/pages/SupplyChainPage";
 import ProductDetailsPage from "@/pages/ProductDetailsPage";
 import DemoPage from "@/pages/DemoPage";
+import DocsPage from "@/pages/DocsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/manufacturer" element={<ManufacturerPage />} />
               <Route path="/supply-chain" element={<SupplyChainPage />} />
               <Route path="/demo" element={<DemoPage />} />
+              <Route path="/docs" element={<DocsPage />} />
               <Route path="/product/:id" element={<ProductDetailsPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
