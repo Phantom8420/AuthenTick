@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Wallet } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
+import { useDemo } from "@/context/DemoContext";
 import { Logo } from "@/components/Logo";
 import { short } from "@/lib/format";
 
@@ -11,10 +12,12 @@ const links = [
   { to: "/verify", label: "Verify" },
   { to: "/manufacturer", label: "Manufacturer" },
   { to: "/supply-chain", label: "Supply chain" },
+  { to: "/demo", label: "Demo" },
 ];
 
 export function Layout() {
   const { account, connectWallet, disconnect } = useWallet();
+  const { demo, setDemo } = useDemo();
   const { pathname } = useLocation();
 
   // feed the card hover glow
@@ -54,6 +57,15 @@ export function Layout() {
           </div>
 
           <div className="nav-end">
+            <button
+              className={`demo-toggle${demo ? " on" : ""}`}
+              onClick={() => setDemo(!demo)}
+              aria-pressed={demo}
+              title={demo ? "Demo mode: simulated in your browser. Click to use the live API." : "Click to run everything on mock data"}
+            >
+              <i />
+              Demo
+            </button>
             {account ? (
               <button className="pill-link" onClick={disconnect} title="Disconnect wallet">
                 <span className="ico">

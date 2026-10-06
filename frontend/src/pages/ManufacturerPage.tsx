@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Copy, Dices, Factory, Sparkles } from "lucide-react";
+import { Check, Copy, Dices, Factory, FlaskConical, Sparkles } from "lucide-react";
 import { ArrowUpRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { apiPost } from "@/api/client";
@@ -68,6 +68,23 @@ export default function ManufacturerPage() {
         <form className="card" onSubmit={onSubmit}>
           <div className="card-label">
             <Factory size={18} /> Product details
+            <button
+              type="button"
+              className="btn btn-sm"
+              style={{ marginLeft: "auto" }}
+              onClick={() =>
+                setForm({
+                  tokenId: randomToken(),
+                  name: "Demo Chronograph",
+                  gtin: "04012345678901",
+                  serial: `SN-${Math.floor(1000 + Math.random() * 9000)}`,
+                  batchId: "BATCH-DEMO",
+                  manufacturerId: "manufacturer-demo",
+                })
+              }
+            >
+              <FlaskConical size={14} /> Fill demo data
+            </button>
           </div>
 
           <div className="form-grid">
