@@ -14,3 +14,5 @@ contracts/cache/
 contracts/types/
 contracts/ignition/deployments/
 contracts/deployedAddresses.json
+test-results/
+playwright-report/

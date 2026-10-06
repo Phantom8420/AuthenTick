@@ -161,7 +161,7 @@ export default function ManufacturerPage() {
                     animate={{ rotate: 0, scale: 1 }}
                     transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.15 }}
                   >
-                    <QRCodeSVG value={link} size={180} bgColor="#e8f2f1" fgColor="#031010" level="M" />
+                    <QRCodeSVG title="QR code linking to this product" value={link} size={180} bgColor="#e8f2f1" fgColor="#031010" level="M" />
                   </motion.div>
                   <div className="token-pill mono">
                     <span>{minted}</span>
@@ -189,7 +189,7 @@ export default function ManufacturerPage() {
               <motion.div key="idle" className="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="empty">
                   <div className="qr-frame" style={{ opacity: 0.1, padding: 14 }}>
-                    <QRCodeSVG value="authentick" size={120} bgColor="#e8f2f1" fgColor="#031010" />
+                    <QRCodeSVG title="Sample QR code" value="authentick" size={120} bgColor="#e8f2f1" fgColor="#031010" />
                   </div>
                   Your product's QR code will appear here once it's minted.
                 </div>
